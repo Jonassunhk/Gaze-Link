@@ -59,7 +59,7 @@ import org.opencv.utils.Converters;
  */
 public class SimpleBlobDetector extends Feature2D {
 
-    protected SimpleBlobDetector(long addr) { super(addr); }
+    public SimpleBlobDetector(long addr) { super(addr); }
 
     // internal usage only
     public static SimpleBlobDetector __fromPtr__(long addr) { return new SimpleBlobDetector(addr); }

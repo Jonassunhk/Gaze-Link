@@ -11,12 +11,15 @@ import android.R.attr.angle
 import android.R.attr.src
 import android.content.pm.PackageManager
 import android.graphics.ImageFormat
+import android.hardware.camera2.CaptureRequest
 import android.media.Image
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.util.Range
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -36,7 +39,7 @@ import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-
+const val TARGET_FRAME_RATE = 12
 typealias LumaListener = (luma: Double) -> Unit
 
 open class MainActivity : AppCompatActivity() {
@@ -68,12 +71,11 @@ open class MainActivity : AppCompatActivity() {
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback)
         } else {
             Log.d("OpenCVDebug", "success")
-        }
-
-        // Request camera permissions
-        if (allPermissionsGranted()) {
             val newContext = this.applicationContext
             eyeDetection.initialize_detector(newContext, this)
+        }
+        // Request camera permissions
+        if (allPermissionsGranted()) {
             startCamera()
         } else {
             ActivityCompat.requestPermissions(
@@ -119,14 +121,6 @@ open class MainActivity : AppCompatActivity() {
 
         @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
         override fun analyze(image: ImageProxy) {
-             fun jpeg(image: Image): Mat {
-                val plan = image.planes[0]
-                val data = plan.buffer
-                data.position(0)
-                // 从通道读取的图片为JPEG，并不能直接使用，
-                // 将其保存在一维数组里
-                return Mat(1, data.remaining(), CvType.CV_8U, data)
-            }
             try {
                 image.image?.let {
                     // ImageProxy uses an ImageReader under the hood:
@@ -148,7 +142,7 @@ open class MainActivity : AppCompatActivity() {
                         if (rgbaMat != null) {
                             Log.d("ImageProcessing", "matimageheight: " +  rgbaMat.height())
                         }
-                        eyeDetection.detect_eyes(rgbaMat)
+                        eyeDetection.input_detection(rgbaMat)
                     } else {
                         // Manage other image formats
                         // TODO - https://developer.android.com/reference/android/media/Image.html
@@ -162,6 +156,7 @@ open class MainActivity : AppCompatActivity() {
         }
     }
 
+    @androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
@@ -179,7 +174,14 @@ open class MainActivity : AppCompatActivity() {
                 .build()
 
             val builder = ImageAnalysis.Builder()
-            val imageAnalyzer = builder.build()
+            val ext: Camera2Interop.Extender<*> = Camera2Interop.Extender(builder)
+            ext.setCaptureRequestOption(
+                CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                Range<Int>(TARGET_FRAME_RATE,TARGET_FRAME_RATE)
+            )
+            val imageAnalyzer = builder // set image analysis settings here (resolution, color, frame rate, etc.)
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
                 .also {
                     it.setAnalyzer(cameraExecutor, ImageAnalyzer { luma ->
                        // Log.d("Luminosity!", "Average luminosity: $luma")
