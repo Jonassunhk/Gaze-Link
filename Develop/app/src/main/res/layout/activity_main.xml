@@ -51,12 +51,12 @@
 
     <ImageView
         android:id="@+id/eye2Display"
-        android:layout_width="150dp"
+        android:layout_width="230dp"
         android:layout_height="150dp"
         android:rotation="90"
         android:scaleType="fitXY"
         android:translationX="100dp"
-        android:translationY="-300dp"
+        android:translationY="-260dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -65,11 +65,12 @@
 
     <ImageView
         android:id="@+id/eye1Display"
-        android:layout_width="150dp"
+        android:layout_width="230dp"
         android:layout_height="150dp"
         android:rotation="90"
         android:scaleType="fitXY"
         android:translationX="-60dp"
+        android:translationY="30dp"
         app:layout_constraintEnd_toStartOf="@+id/vertical_centerline"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
