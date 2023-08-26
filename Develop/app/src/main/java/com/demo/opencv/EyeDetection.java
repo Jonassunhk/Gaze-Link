@@ -1,101 +1,50 @@
 package com.demo.opencv;
 
-import static java.lang.String.format;
-
-import android.app.Activity;
-import android.app.Application;
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
-import android.media.Image;
+import android.graphics.Color;
 import android.util.Log;
-import android.widget.ImageView;
-import android.widget.TextView;
 
-import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.features2d.Features2d;
-import org.opencv.features2d.SimpleBlobDetector;
-import org.opencv.features2d.SimpleBlobDetector_Params;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.imgproc.Moments;
 import org.opencv.objdetect.CascadeClassifier;
-import org.opencv.objdetect.Objdetect;
+import org.tensorflow.lite.Interpreter;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 public class EyeDetection extends AppCompatActivity {
-    public CascadeClassifier faceDetector, eyeDetector;
-    private Context mContext;
-    private Activity mActivity;
-    private SimpleBlobDetector blobDetector;
-    private SimpleBlobDetector_Params params;
-    int leftCounter, rightCounter;
-    ImageView image1;
-    ImageView image2;
-    ImageView image3;
-    TextView text1;
+    private CascadeClassifier faceDetector, eyeDetector;
+    private Interpreter gazeClassifier;
+    public Context mContext;
+    public Mat eyeROI, faceROI, loadedImage, resized;
+    public GazeInput gazeInput;
+
     //TODO: define number constants for variable adjustments later on
-    double heightCropPercentage = 0.33f;
-    int blurRadius = 7;
-
-    public void display_mat(Mat mat, ImageView image) {
-        if (mContext == null || mActivity == null) {
-            Log.d("EyeDetectionCheck", "Waiting for context and activity to load");
-            return;
-        }
-        //mat = rotate_mat(mat, 90.00);
-        Bitmap bm = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(mat,bm);
-        mActivity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (image != null) {
-                    image.setImageBitmap(bm);
-                }
-            }
-        });
-        Log.d("EyeDetectionCheck", "Displayed image on screen");
-    }
-    public void display_text(String text, int id) {
-        if (mContext == null || mActivity == null) {
-            Log.d("EyeDetectionCheck", "Waiting for context and activity to load");
-            return;
-        }
-        text1 = mActivity.findViewById(id);
-        mActivity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (text1 != null) {
-                    text1.setText(text);
-                }
-            }
-        });
-    }
-
-    public Mat rotate_mat(Mat mat, double angle) {
+    public double heightCropPercentage = 1.0f;
+    int IMAGE_SIZE = 96;
+    public Mat rotateMat(Mat mat, double angle) {
 
         Mat rotated_mat = new Mat();
         Point rotPoint = new Point(mat.cols() / 2.0,
@@ -109,30 +58,18 @@ public class EyeDetection extends AppCompatActivity {
                 Imgproc.WARP_INVERSE_MAP);
         return rotated_mat;
     }
-
-    public void set_blobDetector_params() {
-        params = new SimpleBlobDetector_Params();
-        params.set_minCircularity((float) 0.8);
-        params.set_minArea((float) 80);
-        params.set_maxArea((float) 800);
-        params.set_minConvexity((float) 0.4);
-        params.set_minInertiaRatio((float) 0.2);
-        params.set_minThreshold((float) 10);
+    public void loadTensorModel() throws IOException {
+        ByteBuffer model = loadModelFile();
+        Interpreter.Options options = new Interpreter.Options();
+        gazeClassifier = new Interpreter(model, options);
+        if (gazeClassifier != null) {
+            Log.d("TensorModel", "loaded tensorflow lite model");
+        }
     }
-    public void initialize_detector(Context context, Activity activity) { // use input output stream to write CascadeClassifier
 
-        this.mContext = context;
-        this.mActivity = activity;
-        OpenCVLoader.initDebug();
-        set_blobDetector_params();
+    public void loadOpenCVModels(int[] files) throws IOException { // use input output stream to write CascadeClassifier
+
         Resources res = mContext.getResources();
-        leftCounter = 0; rightCounter = 0;
-
-        image1 = mActivity.findViewById(R.id.MatDisplay);
-        image2 = mActivity.findViewById(R.id.eye1Display);
-        image3 = mActivity.findViewById(R.id.eye2Display);
-        int files[] = {R.raw.haarcascade_frontalface_alt, R.raw.haarcascade_eye};
-
         for (int code : files) { // loop to initiate the three cascade classifiers
             try {
                 InputStream inputStream = res.openRawResource(code);
@@ -165,16 +102,64 @@ public class EyeDetection extends AppCompatActivity {
             Log.d("EyeDetectionCheck", "Some cascade files empty!!");
         }
     }
+    private ByteBuffer loadModelFile() throws IOException {
+        AssetFileDescriptor fileDescriptor = mContext.getAssets().openFd("gazeClassifier.tflite");
+        FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
+        FileChannel fileChannel = inputStream.getChannel();
+        long startOffset = fileDescriptor.getStartOffset();
+        long declaredLength = fileDescriptor.getDeclaredLength();
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
+    }
+    private void runModel() {
+        Imgproc.resize(eyeROI, resized, new Size(IMAGE_SIZE, IMAGE_SIZE), Imgproc.INTER_AREA);
+        resized = rotateMat(resized, 90.00);
+        Bitmap dst = Bitmap.createBitmap(resized.width(), resized.height(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(resized, dst);
 
-    public Point add(Point a, Point b) {
+        ByteBuffer buffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.nativeOrder());
+
+        int[] pixels = new int[IMAGE_SIZE*IMAGE_SIZE];
+        dst.getPixels(pixels,0,IMAGE_SIZE,0,0,IMAGE_SIZE,IMAGE_SIZE);
+
+        for (int pixel: pixels) {
+            buffer.putFloat((float) (Color.red(pixel) / 255.0));
+        }
+
+        int bufferSize = 3 * java.lang.Float.SIZE / java.lang.Byte.SIZE;
+        ByteBuffer modelOutput = ByteBuffer.allocateDirect(bufferSize).order(ByteOrder.nativeOrder());
+        gazeClassifier.run(buffer, modelOutput);
+
+        modelOutput.rewind();
+        FloatBuffer probabilities = modelOutput.asFloatBuffer();
+
+        float maxProbability = 0;
+        int type = 0;
+        String[] labels = {"left", "straight", "right"};
+
+        for (int i = 0; i < probabilities.capacity(); i++) {
+            float probability = probabilities.get(i);
+            Log.d("TensorModel", "Probability for class " + i + " is " + probability);
+            if (probability > maxProbability) {
+                maxProbability = probability;
+                type = i;
+            }
+        }
+        gazeInput.gazeType = labels[type];
+        gazeInput.gazeLength = 1;
+        gazeInput.Success = true;
+        //display_text("Decision: " + labels[type], text1);
+    }
+
+
+
+    private Point add(Point a, Point b) {
         Point z = new Point();
         z.x = a.x + b.x;
         z.y = a.y + b.y;
         return z;
     }
 
-    public MatOfPoint find_max_contour(Mat targetMat, Mat drawMat) {
-
+    private MatOfPoint find_max_contour(Mat targetMat, Mat drawMat) {
         List<MatOfPoint> contours = new ArrayList<>();
         Mat hierarchy = new Mat();
         MatOfPoint maxContour = new MatOfPoint();
@@ -188,70 +173,21 @@ public class EyeDetection extends AppCompatActivity {
         }
         return maxContour;
     }
-    public void eyeball_detection(Mat faceROI, Rect eye, ImageView display) {
-
+    public void eyeball_detection(Rect eye) {
         //eye ROI cropping: removing the eyebrows
         int amount = (int) Math.round((float) eye.height * heightCropPercentage);
         Rect newEye = new Rect(new Point(eye.tl().x, eye.tl().y + amount), new Point(eye.br().x, eye.br().y - amount));
-        Mat eyeROI = new Mat(faceROI, newEye);
-
-        // Canny + dilate processing
-        Mat eyeMat = new Mat();
-        Mat inverted = new Mat();
-        Mat pupilMat = new Mat();
-
-        Core.bitwise_not(eyeROI, inverted); // invert and then detect white part?
-        Imgproc.GaussianBlur(eyeROI, eyeROI, new Size(blurRadius,blurRadius),0);
-        Imgproc.adaptiveThreshold(eyeROI, eyeMat, 255,Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV,7,2);
-
-        Imgproc.adaptiveThreshold(eyeROI, pupilMat, 255,Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV,7,7);
-        //Imgproc.Canny(eyeMat, pupilMat, 100,200);//method 1
-        //Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3)); // dilute
-        //Imgproc.dilate(pupilMat, pupilMat, kernel);
-
-        // Blob detector parameters
-//        blobDetector = SimpleBlobDetector.create(params);
-//        MatOfKeyPoint keyPoints = new MatOfKeyPoint();
-//        blobDetector.detect(eyeMat, keyPoints);
-
-        Point eyePoint = new Point(); Point pupilPoint = new Point();
-        Rect eyeRect = new Rect(); Rect pupilRect = new Rect();
-
-        Mat draw = Mat.zeros(eyeROI.size(), CvType.CV_8UC3);
-        MatOfPoint eyeMaxContour = find_max_contour(eyeMat, draw); //find contour of the eye
-        if (eyeMaxContour != null) {
-            eyeRect = Imgproc.boundingRect(eyeMaxContour);
-            Moments moments = Imgproc.moments(eyeMaxContour);
-            eyePoint.x = moments.get_m10() / moments.get_m00();
-            eyePoint.y = moments.get_m01() / moments.get_m00();
-        }
-        Imgproc.circle(draw, eyePoint, 1, new Scalar(255,255,255));
-        Imgproc.rectangle(draw, eyeRect.tl(), eyeRect.br(), new Scalar(0, 255, 0), 1);
-
-        MatOfPoint pupilMaxContour = find_max_contour(pupilMat, draw); //find contour of the eye
-        if (pupilMaxContour != null) {
-            pupilRect = Imgproc.boundingRect(pupilMaxContour);
-            Moments moments = Imgproc.moments(pupilMaxContour);
-            pupilPoint.x = moments.get_m10() / moments.get_m00();
-            pupilPoint.y = moments.get_m01() / moments.get_m00();
-        }
-        Imgproc.circle(draw, pupilPoint, 1, new Scalar(255,255,255));
-        Imgproc.rectangle(draw, pupilRect.tl(), pupilRect.br(), new Scalar(0, 255, 0), 1);
-
-        //Features2d.drawKeypoints(eyeMat, keyPoints, eyeMat, new Scalar(0,255,0), Features2d.DrawMatchesFlags_DRAW_RICH_KEYPOINTS);
-        //display_mat(eyeMat, image3);
-        display_mat(draw, display);
+        eyeROI = new Mat(faceROI, newEye);
+        runModel();
+        //display_mat(eyeROI, display);
     }
 
-
-
-    public Mat eye_detection(Mat loadedImage, Rect face) {
-
-        Mat imageROI = new Mat(loadedImage, face); // roi with only the face
+    private Mat eye_detection(Rect face) {
+        faceROI = new Mat(loadedImage, face); // roi with only the face
         MatOfRect eyesDetected = new MatOfRect();
-        int minEyeSize = Math.round(imageROI.rows() * 0.03f); // TODO: adjust
+        int minEyeSize = Math.round(faceROI.rows() * 0.03f); // TODO: adjust
 
-        eyeDetector.detectMultiScale(imageROI,
+        eyeDetector.detectMultiScale(faceROI,
                 eyesDetected,
                 1.1,
                 3,
@@ -266,9 +202,8 @@ public class EyeDetection extends AppCompatActivity {
             Log.d("EyeDetectionCheck","Insufficient Eyes Detected");
         } else if (size == 2) {
             Log.d("EyeDetectionCheck","Both eyes detected, proceeding...");
-            eyeball_detection(imageROI, eyesArray[0],image2);
-            eyeball_detection(imageROI, eyesArray[1],image3);
-
+            eyeball_detection(eyesArray[0]);
+           // eyeball_detection(imageROI, eyesArray[1],image3);
             Imgproc.rectangle(loadedImage, add(eyesArray[0].tl(), face.tl()), add(eyesArray[0].br(), face.tl()), new Scalar(255,0,0), 3);
             Imgproc.rectangle(loadedImage, add(eyesArray[1].tl(), face.tl()), add(eyesArray[1].br(), face.tl()), new Scalar(255,0,0), 3);
 
@@ -278,16 +213,14 @@ public class EyeDetection extends AppCompatActivity {
 
         return loadedImage;
     }
-    public void input_detection(Mat inputImage)
-    {
+    public GazeInput inputDetection(Mat inputImage) {
         if (faceDetector == null || eyeDetector == null) {
             Log.d("EyeDetectionCheck", "Waiting for Cascade to load");
-            return;
+            return null;
         }
         //Noise Reduction
-        Mat loadedImage = new Mat(inputImage.rows(), inputImage.cols(), inputImage.type());
+        loadedImage = new Mat(inputImage.rows(), inputImage.cols(), inputImage.type());
         Imgproc.GaussianBlur(inputImage, loadedImage, new Size(3,3),0);
-
 
         Log.d("EyeDetectionCheck", "Through");
         MatOfRect facesDetected = new MatOfRect();
@@ -309,13 +242,51 @@ public class EyeDetection extends AppCompatActivity {
         } else if (size == 1) {
             Log.d("EyeDetectionCheck","One face detected, proceeding...");
             Rect face = facesArray[0];
-            loadedImage = eye_detection(loadedImage, face);
+            loadedImage = eye_detection(face);
             Imgproc.rectangle(loadedImage, face.tl(), face.br(), new Scalar(0, 0, 255), 3);
         } else {
             Log.d("EyeDetectionCheck","More than one face detected: " + size);
         }
-
-
-        display_mat(loadedImage, image1);
+        return gazeInput;
     }
 }
+
+// old code for image processing:
+
+//        // Canny + dilate processing
+//        Mat eyeMat = new Mat();
+//        Mat inverted = new Mat();
+//        Mat pupilMat = new Mat();
+//
+//        Core.bitwise_not(eyeROI, inverted); // invert and then detect white part?
+//        Imgproc.GaussianBlur(eyeROI, eyeROI, new Size(blurRadius,blurRadius),0);
+//        Imgproc.adaptiveThreshold(eyeROI, eyeMat, 255,Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV,7,2);
+//        Imgproc.adaptiveThreshold(eyeROI, pupilMat, 255,Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV,7,7);
+//
+//        Point eyePoint = new Point(); Point pupilPoint = new Point();
+//        Rect eyeRect = new Rect(); Rect pupilRect = new Rect();
+//
+//        Mat draw = Mat.zeros(eyeROI.size(), CvType.CV_8UC3);
+//        MatOfPoint eyeMaxContour = find_max_contour(eyeMat, draw); //find contour of the eye
+//        if (eyeMaxContour != null) {
+//            eyeRect = Imgproc.boundingRect(eyeMaxContour);
+//            Moments moments = Imgproc.moments(eyeMaxContour);
+//            eyePoint.x = moments.get_m10() / moments.get_m00();
+//            eyePoint.y = moments.get_m01() / moments.get_m00();
+//        }
+//        Imgproc.circle(draw, eyePoint, 1, new Scalar(255,255,255));
+//        Imgproc.rectangle(draw, eyeRect.tl(), eyeRect.br(), new Scalar(0, 255, 0), 1);
+//
+//        MatOfPoint pupilMaxContour = find_max_contour(pupilMat, draw); //find contour of the eye
+//        if (pupilMaxContour != null) {
+//            pupilRect = Imgproc.boundingRect(pupilMaxContour);
+//            Moments moments = Imgproc.moments(pupilMaxContour);
+//            pupilPoint.x = moments.get_m10() / moments.get_m00();
+//            pupilPoint.y = moments.get_m01() / moments.get_m00();
+//        }
+//        Imgproc.circle(draw, pupilPoint, 1, new Scalar(255,255,255));
+//        Imgproc.rectangle(draw, pupilRect.tl(), pupilRect.br(), new Scalar(0, 255, 0), 1);
+
+//Features2d.drawKeypoints(eyeMat, keyPoints, eyeMat, new Scalar(0,255,0), Features2d.DrawMatchesFlags_DRAW_RICH_KEYPOINTS);
+//display_mat(eyeMat, image3);
+//display_mat(draw, display);

@@ -1,20 +1,12 @@
 package com.demo.opencv
 
-// android and java imports
-
-// opencv imports
-
-// other class imports
-
 import android.Manifest
-import android.R.attr.angle
-import android.R.attr.src
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.ImageFormat
 import android.hardware.camera2.CaptureRequest
 import android.media.Image
 import android.os.Build
-import android.os.Bundle
 import android.util.Log
 import android.util.Range
 import android.widget.Toast
@@ -29,51 +21,29 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.demo.opencv.databinding.ActivityMainBinding
-import org.opencv.android.BaseLoaderCallback
-import org.opencv.android.OpenCVLoader
-import org.opencv.core.CvType
 import org.opencv.core.Mat
-import org.opencv.core.Point
-import org.opencv.imgproc.Imgproc
-import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 const val TARGET_FRAME_RATE = 12
-typealias LumaListener = (luma: Double) -> Unit
+typealias frameListener = (frame: Mat) -> Unit
 
-open class MainActivity : AppCompatActivity() {
+open class CameraXSetup : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
     private var imageCapture: ImageCapture? = null
-    var eyeDetection = EyeDetection()
-
+    var rgbMat: Mat? = null
     private lateinit var cameraExecutor: ExecutorService
+    var frameListener: ContractInterface.Presenter.OnFrameListener? = null;
+    var mContext: Context? = null
 
-    private val mLoaderCallback: BaseLoaderCallback = object : BaseLoaderCallback(this) {
-        override fun onManagerConnected(status: Int) {
-            when (status) {
-                SUCCESS -> {
-                    Log.i("OpenCVDebug", "OpenCV loaded successfully")
-                }
-                else -> {
-                    super.onManagerConnected(status)
-                }
-            }
-        }
-    }
+    fun initializeCameraX() {
+        // = ActivityMainBinding.inflate(layoutInflater)
+       // setContentView(viewBinding.root)
+        // Set up the listeners for take photo and video capture buttons
+        //viewBinding.imageCaptureButton.setOnClickListener { takePhoto() }
+        //viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
+        cameraExecutor = Executors.newSingleThreadExecutor()
 
-    override fun onResume() {
-        super.onResume()
-
-        // check and initialize OpenCV
-        if (!OpenCVLoader.initDebug()) {
-            Log.d("OpenCVDebug", "cannot init debug")
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback)
-        } else {
-            Log.d("OpenCVDebug", "success")
-            val newContext = this.applicationContext
-            eyeDetection.initialize_detector(newContext, this)
-        }
         // Request camera permissions
         if (allPermissionsGranted()) {
             startCamera()
@@ -81,17 +51,6 @@ open class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewBinding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(viewBinding.root)
-        // Set up the listeners for take photo and video capture buttons
-        //viewBinding.imageCaptureButton.setOnClickListener { takePhoto() }
-        //viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
-
-        cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
     override fun onRequestPermissionsResult(
@@ -110,15 +69,7 @@ open class MainActivity : AppCompatActivity() {
         }
     }
 
-    inner class ImageAnalyzer(private val listener: LumaListener) : ImageAnalysis.Analyzer {
-
-        private fun ByteBuffer.toByteArray(): ByteArray {
-            rewind()    // Rewind the buffer to zero
-            val data = ByteArray(remaining())
-            get(data)   // Copy the buffer into a byte array
-            return data // Return the byte array
-        }
-
+    inner class ImageAnalyzer(private val listener: frameListener) : ImageAnalysis.Analyzer {
         @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
         override fun analyze(image: ImageProxy) {
             try {
@@ -135,14 +86,8 @@ open class MainActivity : AppCompatActivity() {
                         && it.planes.size == 3
                     ) {
                         val newImage: Image? = image.getImage()
-                        if (newImage != null) {
-                            Log.d("ImageProcessing", "imageheight: " +  newImage.height)
-                        }
-                        var rgbaMat = Yuv420.gray(newImage)
-                        if (rgbaMat != null) {
-                            Log.d("ImageProcessing", "matimageheight: " +  rgbaMat.height())
-                        }
-                        eyeDetection.input_detection(rgbaMat)
+                        rgbMat = Yuv420.gray(newImage)
+                        frameListener?.onFrame(rgbMat);
                     } else {
                         // Manage other image formats
                         // TODO - https://developer.android.com/reference/android/media/Image.html
@@ -157,7 +102,7 @@ open class MainActivity : AppCompatActivity() {
     }
 
     @androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
-    private fun startCamera() {
+    fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             // Used to bind the lifecycle of cameras to the lifecycle owner
@@ -183,14 +128,11 @@ open class MainActivity : AppCompatActivity() {
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
                 .also {
-                    it.setAnalyzer(cameraExecutor, ImageAnalyzer { luma ->
-                       // Log.d("Luminosity!", "Average luminosity: $luma")
-                    })
+                    it.setAnalyzer(cameraExecutor, ImageAnalyzer { frame -> rgbMat = frame})
                 }
 
             // Select front camera as a default
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-
             try {
                 // Unbind use cases before rebinding
                 cameraProvider.unbindAll()
@@ -206,7 +148,7 @@ open class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+     fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(
             baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
