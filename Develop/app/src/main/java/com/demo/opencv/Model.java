@@ -10,8 +10,7 @@ import java.io.IOException;
 
 
 public class Model implements ContractInterface.Model {
-    EyeDetection detector = new EyeDetection(); // create eye detection object to analyze user input
-    Mat[] testingMats;
+    private EyeDetection detector = new EyeDetection(); // create eye detection object to analyze user input
     @Override
     public void initializeModels(Context context) throws IOException {
 
@@ -23,20 +22,20 @@ public class Model implements ContractInterface.Model {
         }
 
         detector.mContext = context;
-        int files[] = {R.raw.haarcascade_frontalface_alt, R.raw.haarcascade_eye};
+        int files[] = {R.raw.haarcascade_frontalface_alt, R.raw.haarcascade_lefteye_2splits};
         detector.loadTensorModel(); // load TensorFlow Lite Model
         detector.loadOpenCVModels(files); // load OpenCV Cascade Models
     }
 
     @Override
-    public void classifyGaze(OnFinishedListener onFinishedListener, Mat frame) {
+    public GazeInput classifyGaze(Mat frame) {
         GazeInput gazeInput = detector.inputDetection(frame); // detect gaze
         // testing data
-        testingMats[0] = detector.eyeROI;
-        testingMats[1] = detector.faceROI;
-        testingMats[2] = detector.loadedImage;
-        testingMats[3] = detector.resized;
-
-        onFinishedListener.onFinished(gazeInput, testingMats);
+        gazeInput.testingMats = new Mat[4];
+        gazeInput.testingMats[0] = detector.eyeROI;
+        gazeInput.testingMats[1] = detector.squaredROI;
+        gazeInput.testingMats[2] = detector.originalImage;
+        gazeInput.testingMats[3] = detector.faceROI;
+        return gazeInput;
     }
 }

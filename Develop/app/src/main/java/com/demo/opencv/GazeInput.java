@@ -13,8 +13,17 @@ Example: 1000 milliseconds, 1500 milliseconds, etc.
 
  */
 
+import android.graphics.Bitmap;
+
+import org.opencv.core.Mat;
+
+import java.util.ArrayList;
+
 public class GazeInput {
     Boolean Success;
     String gazeType;
     int gazeLength;
+    float gazeProbability;
+    Mat[] testingMats;
+    ArrayList<String> prevInputs;
 }

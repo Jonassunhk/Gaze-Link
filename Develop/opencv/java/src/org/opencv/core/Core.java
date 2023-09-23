@@ -3,13 +3,8 @@
 //
 package org.opencv.core;
 
-import java.util.ArrayList;
 import java.util.List;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfDouble;
-import org.opencv.core.MatOfInt;
-import org.opencv.core.Scalar;
-import org.opencv.core.TermCriteria;
+
 import org.opencv.utils.Converters;
 
 // C++: class Core
@@ -2226,7 +2221,7 @@ public class Core {
      * @param m input multi-channel array.
      * @param mv output vector of arrays; the arrays themselves are reallocated, if needed.
      */
-    public static void split(Mat m, List<Mat> mv) {
+    public static void split(Mat m, List mv) {
         Mat mv_mat = new Mat();
         split_0(m.nativeObj, mv_mat.nativeObj);
         Converters.Mat_to_vector_Mat(mv_mat, mv);
