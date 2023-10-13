@@ -28,9 +28,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentManager;
-import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelStoreOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -94,7 +92,6 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
                 .addToBackStack("quick_fragment") // Name can be null
                 .commit());
 
-
 //
 //        texts[0] = findViewById(R.id.textView1);
 //        texts[1] = findViewById(R.id.textView2);
@@ -113,9 +110,9 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
     }
 
     @Override
-    public void displayDetectData(GazeInput gazeInput) {
+    public void displayDetectData(DetectionOutput detectionOutput) {
         Runnable myRunnable = () -> {
-            viewModel.selectItem(gazeInput);
+            viewModel.selectItem(detectionOutput);
         };
         mainHandler.post(myRunnable);
     }
@@ -186,14 +183,16 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
                 //TODO: Finish setting up frame listener + image processing
 
                 if (image.getFormat() == ImageFormat.YUV_420_888 && image.getPlanes().length == 3) {
-                    Image newImage = image.getImage();
-                    Mat grayMat = Yuv420.gray(newImage);
                     Log.d("MVPView", "Image Format Correct: Frame Loaded");
-                    presenter.onFrame(grayMat);
+                    Image newImage = image.getImage();
+                    Mat rgbaMat = Yuv420.rgb(newImage);
+                    presenter.onFrame(rgbaMat);
+                    newImage.close();
                 } else {
                     Log.d("MVPView", "Image format not correct");
                 }
                 image.close();
+
             }
         });
         cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis);

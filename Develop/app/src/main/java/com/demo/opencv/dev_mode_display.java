@@ -69,7 +69,6 @@ public class dev_mode_display extends Fragment {
         // different image templates on the dev mode display
         images[0] = mActivity.findViewById(R.id.imageView1);
         images[1] = mActivity.findViewById(R.id.imageView2);
-        images[2] = mActivity.findViewById(R.id.imageView3);
         texts[0] = mActivity.findViewById(R.id.textView1);
         texts[1] = mActivity.findViewById(R.id.textView2);
         texts[2] = mActivity.findViewById(R.id.textView3);
@@ -81,14 +80,16 @@ public class dev_mode_display extends Fragment {
             public void run() {
                 Log.d("devModeDisplay", "Images Displayed");
                 viewModel.getSelectedItem().observe(requireActivity(), item -> {
-                    for (int i = 0; i < 3; i++) {
-                        if (item.testingMats[i] != null) {
+                    for (int i = 0; i < 2; i++) {
+                        // check if the testing mats are empty
+                        if (item.testingMats[i] != null && item.testingMats[i].width() > 0 && item.testingMats[i].height() > 0) {
                             images[i].setImageBitmap(matToBitmap(item.testingMats[i]));
                         }
                     }
-                    texts[0].setText(item.gazeType);
-                    texts[1].setText(String.format("%.2f", item.gazeProbability));
-                    if (item.Success) {
+                    texts[0].setText(item.AnalyzedData.getTypeString());
+                    texts[1].setText(String.format("%.2f", item.AnalyzedData.GazeProbability));
+
+                    if (item.AnalyzedData.Success) { // check if the final output is successful
                         texts[2].setText("INPUT DETECTED");
                     } else {
                         texts[2].setText("---------------");

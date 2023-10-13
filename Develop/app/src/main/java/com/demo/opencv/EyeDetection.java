@@ -1,13 +1,10 @@
 package com.demo.opencv;
 
-import static org.opencv.core.Core.normalize;
-
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.util.Log;
 
 import org.opencv.android.Utils;
@@ -30,11 +27,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -42,27 +38,27 @@ public class EyeDetection extends AppCompatActivity {
     private CascadeClassifier faceDetector, eyeDetector;
     private Interpreter gazeClassifier;
     public Context mContext;
-    public Mat eyeROI, faceROI, originalImage, squaredROI, rightFaceROI, leftFaceROI;
-    public GazeInput gazeInput;
-    Mat[] templates;
-    String[] tags;
-    Rect[] eyesArray, facesArray;
-    int IMAGE_SIZE = 96;
-    double GESTURE_DETECT_THRESHOLD = 30;
-    public Mat rotateMat(Mat mat, double angle) {
+    public Mat faceROI, originalImage, squaredROI, rightFaceROI, leftFaceROI, rightEyeROI, leftEyeROI;
+    Mat[] leftTemplates, rightTemplates;
+    Integer[] tags;
+    int tempNum = 10;
+    static int IMAGE_WIDTH = 120, IMAGE_HEIGHT = 45;
+    Float[] DETECT_THRESHOLDS = {60f, 55.0f, 55.0f, 55f, 55f, 0f}; // straight, left, right, up, down, closed (N/A)
 
-        Mat rotated_mat = new Mat();
-        Point rotPoint = new Point(mat.cols() / 2.0,
-                mat.rows() / 2.0);
-        // Create Rotation Matrix
-        Mat rotMat = Imgproc.getRotationMatrix2D(
-                rotPoint, angle, 1);
-
-        // Apply Affine Transformation
-        Imgproc.warpAffine(mat, rotated_mat, rotMat, mat.size(),
-                Imgproc.WARP_INVERSE_MAP);
-        return rotated_mat;
-    }
+//    public Mat rotateMat(Mat mat, 1double angle) {
+//
+//        Mat rotated_mat = new Mat();
+//        Point rotPoint = new Point(mat.cols() / 2.0,
+//                mat.rows() / 2.0);
+//        // Create Rotation Matrix
+//        Mat rotMat = Imgproc.getRotationMatrix2D(
+//                rotPoint, angle, 1);
+//
+//        // Apply Affine Transformation
+//        Imgproc.warpAffine(mat, rotated_mat, rotMat, mat.size(),
+//                Imgproc.WARP_INVERSE_MAP);
+//        return rotated_mat;
+//    }
 
     public void loadTensorModel() throws IOException {
         ByteBuffer model = loadModelFile();
@@ -71,23 +67,38 @@ public class EyeDetection extends AppCompatActivity {
         Log.d("TensorModel", "loaded tensorflow lite model");
     }
 
-    private void loadTemplates(int index, int id) {
+    private void loadTemplates(Mat[] templates, int index, int id) {
         Bitmap bm = BitmapFactory.decodeResource(mContext.getResources(), id);
         templates[index] = new Mat(bm.getWidth(), bm.getHeight(), CvType.CV_8UC4);
         Utils.bitmapToMat(bm, templates[index]);
         Imgproc.cvtColor(templates[index], templates[index], Imgproc.COLOR_BGR2GRAY);
-        Imgproc.resize(templates[index], templates[index], new Size(IMAGE_SIZE,IMAGE_SIZE), Imgproc.INTER_AREA);
+        Imgproc.resize(templates[index], templates[index], new Size(IMAGE_WIDTH,IMAGE_HEIGHT), Imgproc.INTER_AREA);
     }
 
     public void loadOpenCVModels(int[] files) { // use input output stream to write CascadeClassifier
 
-        templates = new Mat[6];
-        int[] id = {R.drawable.left, R.drawable.straight, R.drawable.right,
-                R.drawable.left2, R.drawable.straight2, R.drawable.right2};
-        for (int i = 0; i < 6; i++) {
-            loadTemplates(i, id[i]);
+        leftTemplates = new Mat[tempNum];
+        rightTemplates = new Mat[tempNum];
+
+        int[] left_id = {
+                R.drawable.left_left, R.drawable.left_left2,
+                R.drawable.left_right, R.drawable.left_right2,
+                R.drawable.left_straight, R.drawable.left_straight2,
+                R.drawable.left_up, R.drawable.left_up2,
+                R.drawable.left_down, R.drawable.left_down2};
+
+        int[] right_id = {
+                R.drawable.right_left, R.drawable.right_left2,
+                R.drawable.right_right, R.drawable.right_right2,
+                R.drawable.right_straight, R.drawable.right_straight2,
+                R.drawable.right_up, R.drawable.right_up2,
+                R.drawable.right_down, R.drawable.right_down2};
+
+        for (int i = 0; i < tempNum; i++) {
+            loadTemplates(leftTemplates, i, left_id[i]);
+            loadTemplates(rightTemplates, i, right_id[i]);
         }
-        tags = new String[]{"Left", "Straight", "Right", "Left", "Straight", "Right"};
+        tags = new Integer[]{2, 2, 1, 1, 0, 0, 3, 3, 4, 4}; // should be flipped because of perspective
 
         Resources res = mContext.getResources();
         for (int code : files) { // loop to initiate the three cascade classifiers
@@ -130,10 +141,10 @@ public class EyeDetection extends AppCompatActivity {
     }
 
     private double mse(Mat a, Mat b, int h, int w) { // minimum squared error calculations
-        double sum = 0;
+        double sum;
         Mat difMat = new Mat(h, w, CvType.CV_8UC4);
         Imgproc.cvtColor(difMat, difMat, Imgproc.COLOR_BGR2GRAY);
-       // Log.d("EyeDetection", a.channels() + " " + b.channels() + " " + difMat.channels());
+        Log.d("EyeDetection", a.channels() + " " + b.channels() + " " + difMat.channels());
         Core.subtract(a, b, difMat);
         Mat destSquared = difMat.mul(difMat);
         Scalar s = Core.sumElems(destSquared);
@@ -141,40 +152,46 @@ public class EyeDetection extends AppCompatActivity {
         sum = s.val[0] / d;
         return sum;
     }
-    private void runModel() {
-        // create mat resized with black background
-        Mat squareMat = new Mat(eyeROI.cols(), eyeROI.cols(), Imgproc.COLOR_BGR2GRAY);
-        squareMat.convertTo(squareMat,CvType.CV_8UC4);
+    public DetectionOutput runEyeModel(DetectionOutput detectionOutput, Mat eyeROI, int type) {
 
+//        // create mat resized with black background
+//        Mat squareMat = new Mat(eyeROI.cols(), eyeROI.cols(), Imgproc.COLOR_BGR2GRAY);
+//        squareMat.convertTo(squareMat,CvType.CV_8UC4);
         // create ROI for resized and add the eye in the middle
-        int startY = eyeROI.cols() / 2 - eyeROI.rows() / 2;
-        Rect ROI = new Rect(0,startY, eyeROI.cols(), eyeROI.rows());
-        eyeROI.copyTo(squareMat.submat(ROI));
+//        int startY = eyeROI.cols() / 2 - eyeROI.rows() / 2;
+//        Rect ROI = new Rect(0,startY, eyeROI.cols(), eyeROI.rows());
+//        eyeROI.copyTo(squareMat.submat(ROI));
+
+        eyeROI.convertTo(eyeROI, CvType.CV_8UC4);
 
         // resize the mat to the correct image size
-        Mat tensorMat = new Mat(IMAGE_SIZE, IMAGE_SIZE, CvType.CV_8UC4);
-        Imgproc.resize(squareMat, tensorMat, new Size(IMAGE_SIZE, IMAGE_SIZE), Imgproc.INTER_AREA);
+        Mat tensorMat = new Mat(IMAGE_HEIGHT, IMAGE_WIDTH, CvType.CV_8UC4);
+        // squareMat.convertTo(squareMat, -1, 1.4,1.5); // HMC Classroom lighting settings (temporary)
+        Imgproc.resize(eyeROI, tensorMat, new Size(IMAGE_WIDTH, IMAGE_HEIGHT), Imgproc.INTER_AREA);
 
+        Mat[] compareTemplates;
+        if (type == 0) {
+            compareTemplates = leftTemplates;
+            detectionOutput.testingMats[0] = tensorMat;
+        } else {
+            compareTemplates = rightTemplates;
+            detectionOutput.testingMats[1] = tensorMat;
+        }
         // MSE
         double minError = 10000000;
         int index = 0;
-        for (int i = 0; i < 3; i++) {
-            double sum = mse(templates[i], tensorMat, IMAGE_SIZE, IMAGE_SIZE);
+        for (int i = 0; i < tempNum; i++) {
+            double sum = mse(compareTemplates[i], tensorMat, IMAGE_HEIGHT, IMAGE_WIDTH);
             if (sum < minError) {
                 minError = sum;
                 index = i;
             }
         }
-        squaredROI = squareMat;
-        gazeInput.gazeType = tags[index];
-        gazeInput.gazeLength = 1;
-        gazeInput.gazeProbability = (float)minError;
-        if (minError <= GESTURE_DETECT_THRESHOLD) {
-            gazeInput.Success = true;
-        } else {
-            gazeInput.Success = false;
-        }
 
+        Boolean success = minError <= DETECT_THRESHOLDS[tags[index]]; // get threshold for the specific type
+        detectionOutput.setEyeData(type, success, tags[index], 1, (float)minError);
+
+        return detectionOutput;
         /*
         Bitmap dst = Bitmap.createBitmap(tensorMat.width(), tensorMat.height(), Bitmap.Config.ARGB_8888);
         tensorMat.convertTo(tensorMat,CvType.CV_8UC4);
@@ -217,7 +234,7 @@ public class EyeDetection extends AppCompatActivity {
         z.y = a.y + b.y;
         return z;
     }
-    private MatOfPoint find_max_contour(Mat targetMat, Mat drawMat) {
+    private MatOfPoint find_max_contour(Mat targetMat) {
         List<MatOfPoint> contours = new ArrayList<>();
         Mat hierarchy = new Mat();
         MatOfPoint maxContour = new MatOfPoint();
@@ -231,8 +248,7 @@ public class EyeDetection extends AppCompatActivity {
         }
         return maxContour;
     }
-    public void eyeball_detection(Rect eye) {
-
+    private Mat crop_eye_ROI(Mat ROI, Rect eye) {
         //eye ROI cropping: removing the eyebrows
         double topCrop = 0.5f;
         double downCrop = 0.2f;
@@ -249,15 +265,17 @@ public class EyeDetection extends AppCompatActivity {
                 new Point(eye.br().x - rightAmount, eye.br().y - downAmount)
         );
 
-        eyeROI = new Mat(faceROI, newEye);
+        Mat dst;
+        dst = new Mat(ROI, newEye);
+        return dst;
     }
 
-    private void eye_detection(Rect face) {
-        faceROI = new Mat(originalImage, face); // roi with only the face
-        MatOfRect eyesDetected = new MatOfRect();
-        int minEyeSize = Math.round(faceROI.rows() * 0.03f); // TODO: adjust
+    private Rect[] eye_detection(Mat ROI) {
 
-        eyeDetector.detectMultiScale(faceROI,
+        MatOfRect eyesDetected = new MatOfRect();
+        int minEyeSize = Math.round(ROI.rows() * 0.03f); // TODO: adjust
+
+        eyeDetector.detectMultiScale(ROI,
                 eyesDetected,
                 1.1,
                 3,
@@ -265,16 +283,18 @@ public class EyeDetection extends AppCompatActivity {
                 new Size(minEyeSize, minEyeSize),
                 new Size()
         );
-
-        eyesArray = eyesDetected.toArray();
+        return eyesDetected.toArray();
     }
-    public GazeInput inputDetection(Mat inputImage) {
+    public void faceEyeDetection(Mat inputImage) {
+
+        Rect[] facesArray, leftEyesArray, rightEyesArray;
+        squaredROI = new Mat();
+
         if (faceDetector == null || eyeDetector == null) {
             Log.d("EyeDetectionCheck", "Waiting for Cascade to load");
-            return null;
+            return;
         }
-        gazeInput = new GazeInput();
-        gazeInput.Success = false;
+
         //Noise Reduction
         originalImage = new Mat(inputImage.rows(), inputImage.cols(), inputImage.type());
         Imgproc.GaussianBlur(inputImage, originalImage, new Size(3,3),0);
@@ -299,29 +319,34 @@ public class EyeDetection extends AppCompatActivity {
         } else if (faceCount == 1) {
             Log.d("EyeDetectionCheck","One face detected, proceeding...");
             Rect face = facesArray[0];
+            faceROI = new Mat(originalImage, face); // roi with only the face
 
             //split face into half and detect eyes separately
-            eye_detection(face);
+            Rect right = new Rect(0,0,faceROI.cols()/2, faceROI.rows());
+            Rect left = new Rect(faceROI.cols()/2, 0, faceROI.cols()/2, faceROI.rows());
+            rightFaceROI = new Mat(faceROI, right);
+            leftFaceROI = new Mat(faceROI, left);
 
-            int eyeCount = eyesArray.length;
-            if (eyeCount < 1) {
-                Log.d("EyeDetectionCheck","Insufficient Eyes Detected");
-            } else if (eyeCount == 1 || eyeCount == 2) {
-                Log.d("EyeDetectionCheck","1 or 2 eyes detected, proceeding...");
-                eyeball_detection(eyesArray[0]);
-            } else {
-                Log.d("EyeDetectionCheck","More than two eyes detected: " + eyeCount);
+            // detect right eye
+            rightEyesArray = eye_detection(rightFaceROI);
+            if (rightEyesArray.length == 1) {
+                Log.d("EyeDetectionCheck","right side eye detected");
+                rightEyeROI = crop_eye_ROI(rightFaceROI, rightEyesArray[0]);
             }
-            squaredROI = new Mat();
-            runModel();
-
+            // detect left eye
+            leftEyesArray = eye_detection(leftFaceROI);
+            if (leftEyesArray.length == 1) {
+                Log.d("EyeDetectionCheck","left side eye detected");
+                leftEyeROI = crop_eye_ROI(leftFaceROI, leftEyesArray[0]);
+            }
             // draw rectangles last
-            Imgproc.rectangle(originalImage, add(eyesArray[0].tl(), face.tl()), add(eyesArray[0].br(), face.tl()), new Scalar(255,0,0), 3);
+            if (leftEyesArray.length > 0) {
+               // Imgproc.rectangle(originalImage, add(leftEyesArray[0].tl(), face.tl()), add(leftEyesArray[0].br(), face.tl()), new Scalar(255,0,0), 3);
+            }
             Imgproc.rectangle(originalImage, face.tl(), face.br(), new Scalar(0, 0, 255), 3);
         } else {
             Log.d("EyeDetectionCheck","More than one face detected: " + faceCount);
         }
-        return gazeInput;
     }
 }
 

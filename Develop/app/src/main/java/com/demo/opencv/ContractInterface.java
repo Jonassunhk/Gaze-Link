@@ -10,15 +10,14 @@ public interface ContractInterface {
     interface View {
         void switchMode(String activityName); // method to switch between different modes
         void showInput(int gazeCode);
-
         void displayText(int code, String text);
         void displayImage(int code, Bitmap bitmap);
-        void displayDetectData(GazeInput gazeInput);
+        void displayDetectData(DetectionOutput detectionOutput);
     }
 
     interface Model {
         void initializeModels(Context context) throws IOException; // method to initialize models in the database (OpenCV, TensorFlow Lite, ChatGPT, etc.)
-        GazeInput classifyGaze(Mat frame); // determine gaze code with output
+        DetectionOutput classifyGaze(Mat rgbMat); // determine gaze code with output
     }
 
     interface Presenter {

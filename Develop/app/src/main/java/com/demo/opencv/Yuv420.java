@@ -10,7 +10,6 @@ import org.opencv.imgproc.Imgproc;
 
 import java.nio.ByteBuffer;
 
-@TargetApi(Build.VERSION_CODES.KITKAT)
 
 public class Yuv420 {
 

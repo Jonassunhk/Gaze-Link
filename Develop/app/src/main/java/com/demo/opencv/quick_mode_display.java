@@ -61,7 +61,7 @@ public class quick_mode_display extends Fragment {
                 viewModel.getSelectedItem().observe(requireActivity(), item -> {
                     if (item.prevInputs != null) {
                         String listString = String.join(", ", item.prevInputs);
-                        Log.d("quickModeDisplay", "prevInputs");
+                        Log.d("quickModeDisplay", listString + " " + item.prevInputs.size());
                         textView.setText(listString);
                     }
                 });
