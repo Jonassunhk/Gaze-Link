@@ -5,8 +5,7 @@ plugins {
 
 android {
     namespace 'com.demo.opencv'
-    compileSdk 33
-    buildToolsVersion "30.0.3"
+    compileSdk 34
 
     sourceSets {
         main{
@@ -30,7 +29,7 @@ android {
     defaultConfig {
         applicationId "com.demo.opencv"
         minSdk 24
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
@@ -67,8 +66,8 @@ android {
         viewBinding true
         aidl true
     }
-    aaptOptions {
-        noCompress "tflite"
+    androidResources {
+        noCompress 'tflite'
     }
 }
 
@@ -77,12 +76,19 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    implementation 'org.tensorflow:tensorflow-lite-task-vision:+'
+    implementation 'org.tensorflow:tensorflow-lite-task-text:+'
+    implementation 'org.tensorflow:tensorflow-lite-task-audio:+'
+
     implementation project(path: ':opencv')
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.5.2'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.5.2'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.7.3'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.7.3'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    implementation 'com.google.mlkit:face-detection:16.1.5'
 
     def camerax_version = "1.1.0-beta01"
     implementation "androidx.camera:camera-core:${camerax_version}"
