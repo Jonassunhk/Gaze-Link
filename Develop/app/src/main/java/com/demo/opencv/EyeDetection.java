@@ -41,24 +41,9 @@ public class EyeDetection extends AppCompatActivity {
     public Mat faceROI, originalImage, squaredROI, rightFaceROI, leftFaceROI, rightEyeROI, leftEyeROI;
     Mat[] leftTemplates, rightTemplates;
     Integer[] tags;
-    int tempNum = 10;
+    int tempNum = 14;
     static int IMAGE_WIDTH = 120, IMAGE_HEIGHT = 45;
-    Float[] DETECT_THRESHOLDS = {60f, 55.0f, 55.0f, 55f, 55f, 0f}; // straight, left, right, up, down, closed (N/A)
-
-//    public Mat rotateMat(Mat mat, 1double angle) {
-//
-//        Mat rotated_mat = new Mat();
-//        Point rotPoint = new Point(mat.cols() / 2.0,
-//                mat.rows() / 2.0);
-//        // Create Rotation Matrix
-//        Mat rotMat = Imgproc.getRotationMatrix2D(
-//                rotPoint, angle, 1);
-//
-//        // Apply Affine Transformation
-//        Imgproc.warpAffine(mat, rotated_mat, rotMat, mat.size(),
-//                Imgproc.WARP_INVERSE_MAP);
-//        return rotated_mat;
-//    }
+    Float[] DETECT_THRESHOLDS = {65f, 65f, 65f, 75f, 55f, 0f, 75f, 75f}; // straight, left, right, up, down, closed, leftUp, rightUp (N/A)
 
     public void loadTensorModel() throws IOException {
         ByteBuffer model = loadModelFile();
@@ -85,20 +70,24 @@ public class EyeDetection extends AppCompatActivity {
                 R.drawable.left_right, R.drawable.left_right2,
                 R.drawable.left_straight, R.drawable.left_straight2,
                 R.drawable.left_up, R.drawable.left_up2,
-                R.drawable.left_down, R.drawable.left_down2};
+                R.drawable.left_down, R.drawable.left_down2,
+                R.drawable.left_left_up, R.drawable.left_left_up2,
+                R.drawable.left_right_up, R.drawable.left_right_up2};
 
         int[] right_id = {
                 R.drawable.right_left, R.drawable.right_left2,
                 R.drawable.right_right, R.drawable.right_right2,
                 R.drawable.right_straight, R.drawable.right_straight2,
                 R.drawable.right_up, R.drawable.right_up2,
-                R.drawable.right_down, R.drawable.right_down2};
+                R.drawable.right_down, R.drawable.right_down2,
+                R.drawable.right_left_up, R.drawable.right_left_up2,
+                R.drawable.right_right_up, R.drawable.right_right_up2};
 
         for (int i = 0; i < tempNum; i++) {
             loadTemplates(leftTemplates, i, left_id[i]);
             loadTemplates(rightTemplates, i, right_id[i]);
         }
-        tags = new Integer[]{2, 2, 1, 1, 0, 0, 3, 3, 4, 4}; // should be flipped because of perspective
+        tags = new Integer[]{2, 2, 1, 1, 0, 0, 3, 3, 4, 4, 7, 7, 6, 6}; // should be flipped because of perspective
 
         Resources res = mContext.getResources();
         for (int code : files) { // loop to initiate the three cascade classifiers
@@ -181,52 +170,18 @@ public class EyeDetection extends AppCompatActivity {
         double minError = 10000000;
         int index = 0;
         for (int i = 0; i < tempNum; i++) {
-            double sum = mse(compareTemplates[i], tensorMat, IMAGE_HEIGHT, IMAGE_WIDTH);
+            double sum = mse(compareTemplates[i], tensorMat, IMAGE_HEIGHT, IMAGE_WIDTH) - DETECT_THRESHOLDS[tags[i]];
             if (sum < minError) {
                 minError = sum;
                 index = i;
             }
         }
 
-        Boolean success = minError <= DETECT_THRESHOLDS[tags[index]]; // get threshold for the specific type
+        Boolean success = minError <= 0; // get threshold for the specific type
         detectionOutput.setEyeData(type, success, tags[index], 1, (float)minError);
 
         return detectionOutput;
-        /*
-        Bitmap dst = Bitmap.createBitmap(tensorMat.width(), tensorMat.height(), Bitmap.Config.ARGB_8888);
-        tensorMat.convertTo(tensorMat,CvType.CV_8UC4);
-        Utils.matToBitmap(tensorMat, dst);
 
-        ByteBuffer buffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.nativeOrder());
-
-        int[] pixels = new int[IMAGE_SIZE*IMAGE_SIZE];
-        dst.getPixels(pixels,0,IMAGE_SIZE,0,0,IMAGE_SIZE,IMAGE_SIZE);
-
-        for (int pixel: pixels) {
-            buffer.putFloat((float) (Color.red(pixel) / 255.0));
-        }
-
-        int bufferSize = 3 * java.lang.Float.SIZE / java.lang.Byte.SIZE;
-        ByteBuffer modelOutput = ByteBuffer.allocateDirect(bufferSize).order(ByteOrder.nativeOrder());
-
-        gazeClassifier.run(buffer, modelOutput);
-
-        modelOutput.rewind();
-        FloatBuffer probabilities = modelOutput.asFloatBuffer();
-
-        float maxProbability = 0;
-        int type = 0;
-        String[] labels = {"left", "straight", "right"};
-
-        for (int i = 0; i < probabilities.capacity(); i++) {
-            float probability = probabilities.get(i);
-            Log.d("TensorModel", "Probability for class " + i + " is " + probability);
-            if (probability > maxProbability) {
-                maxProbability = probability;
-                type = i;
-            }
-        }
-        */
     }
     private Point add(Point a, Point b) {
         Point z = new Point();
@@ -389,3 +344,40 @@ public class EyeDetection extends AppCompatActivity {
 //Features2d.drawKeypoints(eyeMat, keyPoints, eyeMat, new Scalar(0,255,0), Features2d.DrawMatchesFlags_DRAW_RICH_KEYPOINTS);
 //display_mat(eyeMat, image3);
 //display_mat(draw, display);
+
+// old code for tensorflow model:
+/*
+        Bitmap dst = Bitmap.createBitmap(tensorMat.width(), tensorMat.height(), Bitmap.Config.ARGB_8888);
+        tensorMat.convertTo(tensorMat,CvType.CV_8UC4);
+        Utils.matToBitmap(tensorMat, dst);
+
+        ByteBuffer buffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.nativeOrder());
+
+        int[] pixels = new int[IMAGE_SIZE*IMAGE_SIZE];
+        dst.getPixels(pixels,0,IMAGE_SIZE,0,0,IMAGE_SIZE,IMAGE_SIZE);
+
+        for (int pixel: pixels) {
+            buffer.putFloat((float) (Color.red(pixel) / 255.0));
+        }
+
+        int bufferSize = 3 * java.lang.Float.SIZE / java.lang.Byte.SIZE;
+        ByteBuffer modelOutput = ByteBuffer.allocateDirect(bufferSize).order(ByteOrder.nativeOrder());
+
+        gazeClassifier.run(buffer, modelOutput);
+
+        modelOutput.rewind();
+        FloatBuffer probabilities = modelOutput.asFloatBuffer();
+
+        float maxProbability = 0;
+        int type = 0;
+        String[] labels = {"left", "straight", "right"};
+
+        for (int i = 0; i < probabilities.capacity(); i++) {
+            float probability = probabilities.get(i);
+            Log.d("TensorModel", "Probability for class " + i + " is " + probability);
+            if (probability > maxProbability) {
+                maxProbability = probability;
+                type = i;
+            }
+        }
+        */

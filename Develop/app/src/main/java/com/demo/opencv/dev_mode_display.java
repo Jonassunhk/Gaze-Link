@@ -27,7 +27,6 @@ import org.opencv.core.Mat;
  * create an instance of this fragment.
  */
 public class dev_mode_display extends Fragment {
-
     private UIViewModel viewModel;
     Activity mActivity;
     ImageView[] images = new ImageView[4];
@@ -80,21 +79,26 @@ public class dev_mode_display extends Fragment {
             public void run() {
                 Log.d("devModeDisplay", "Images Displayed");
                 viewModel.getSelectedItem().observe(requireActivity(), item -> {
+                    DetectionOutput detection = item.DetectionOutput;
+                    if (detection == null) {
+                        return;
+                    }
                     for (int i = 0; i < 2; i++) {
                         // check if the testing mats are empty
-                        if (item.testingMats[i] != null && item.testingMats[i].width() > 0 && item.testingMats[i].height() > 0) {
-                            images[i].setImageBitmap(matToBitmap(item.testingMats[i]));
+                        if (detection.testingMats[i] != null && detection.testingMats[i].width() > 0 && detection.testingMats[i].height() > 0) {
+                            images[i].setImageBitmap(matToBitmap(detection.testingMats[i]));
                         }
                     }
-                    texts[0].setText(item.AnalyzedData.getTypeString());
-                    texts[1].setText(String.format("%.2f", item.AnalyzedData.GazeProbability));
+                    if (detection.AnalyzedData != null) {
+                        texts[0].setText(detection.AnalyzedData.getTypeString(detection.AnalyzedData.GazeType));
+                        texts[1].setText(String.format("%.2f", detection.AnalyzedData.GazeProbability));
 
-                    if (item.AnalyzedData.Success) { // check if the final output is successful
-                        texts[2].setText("INPUT DETECTED");
-                    } else {
-                        texts[2].setText("---------------");
+                        if (detection.AnalyzedData.Success) { // check if the final output is successful
+                            texts[2].setText("GAZE DETECTED");
+                        } else {
+                            texts[2].setText("---------------");
+                        }
                     }
-
                 });
             }
         };

@@ -6,35 +6,53 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:background="#B6B2CC"
 
+    android:orientation="vertical"
     tools:context="com.demo.opencv.MainActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:background="#93BBBF"
+        android:orientation="horizontal"
+        android:visibility="visible">
 
         <Button
             android:id="@+id/quickModeButton"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:background="#A56C6C"
             android:text="Quick Mode" />
 
         <Button
             android:id="@+id/textModeButton"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:background="#A56C6C"
             android:text="Text-entry Mode" />
 
         <Button
             android:id="@+id/devModeButton"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:background="#A56C6C"
             android:text="Dev Mode" />
+
+        <Button
+            android:id="@+id/calibrateButton"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="#A56C6C"
+            android:text="Calibrate" />
     </LinearLayout>
 
     <LinearLayout
@@ -46,8 +64,7 @@
             android:id="@+id/fragmentContainerView"
             android:name="com.demo.opencv.dev_mode_display"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#83C5FF" />
+            android:layout_height="match_parent" />
     </LinearLayout>
 
 </LinearLayout>

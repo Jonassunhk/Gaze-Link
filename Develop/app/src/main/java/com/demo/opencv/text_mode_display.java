@@ -3,6 +3,7 @@ package com.demo.opencv;
 import android.app.Activity;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -16,10 +17,10 @@ import android.widget.TextView;
 
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link quick_mode_display#newInstance} factory method to
+ * Use the {@link text_mode_display#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class quick_mode_display extends Fragment {
+public class text_mode_display extends Fragment {
 
 
     /*
@@ -31,13 +32,16 @@ public class quick_mode_display extends Fragment {
     Activity mActivity;
     Handler handler;
     Runnable updateUI;
-    TextView textView;
-    public quick_mode_display() {
+    TextView gazeInputLog;
+    TextView textInput;
+    TextView[] keyboardOptions = new TextView[4];
+
+    public text_mode_display() {
         // Required empty public constructor
     }
 
-    public static quick_mode_display newInstance() {
-        quick_mode_display fragment = new quick_mode_display();
+    public static text_mode_display newInstance() {
+        text_mode_display fragment = new text_mode_display();
         Bundle args = new Bundle();
         fragment.setArguments(args);
         return fragment;
@@ -50,19 +54,33 @@ public class quick_mode_display extends Fragment {
     }
 
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        textView = mActivity.findViewById(R.id.gazeInputLog);
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+
+        gazeInputLog = mActivity.findViewById(R.id.gazeInputLog);
+        textInput = mActivity.findViewById(R.id.textInput);
+        keyboardOptions[0] = mActivity.findViewById(R.id.keyboardUpText); // 0: up
+        keyboardOptions[1] = mActivity.findViewById(R.id.keyboardLeftText); // 1: left
+        keyboardOptions[2] = mActivity.findViewById(R.id.keyboardDownText); // 2: down
+        keyboardOptions[3] = mActivity.findViewById(R.id.keyboardRightText); // 3: right
 
         handler = new Handler(Looper.getMainLooper());
         updateUI = new Runnable(){
             @Override
             public void run() {
-
                 viewModel.getSelectedItem().observe(requireActivity(), item -> {
-                    if (item.prevInputs != null) {
-                        String listString = String.join(", ", item.prevInputs);
-                        Log.d("quickModeDisplay", listString + " " + item.prevInputs.size());
-                        textView.setText(listString);
+                    DetectionOutput detection = item.DetectionOutput;
+                    if (detection.prevInputs != null) {
+                        String listString = String.join(", ", detection.prevInputs);
+                        Log.d("quickModeDisplay", listString + " " + detection.prevInputs.size());
+                        gazeInputLog.setText(listString);
+                    }
+
+                    KeyboardData keyboardData = item.KeyboardData;
+                    if (keyboardData != null) {
+                        for (int i = 0; i < 4; i++) {
+                            keyboardOptions[i].setText(keyboardData.Options[i]); // display letter labels for keyboard
+                        }
+                        textInput.setText("Current Text: " + keyboardData.TextInput);
                     }
                 });
             }
@@ -80,6 +98,6 @@ public class quick_mode_display extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.quick_mode_fragment, container, false);
+        return inflater.inflate(R.layout.text_mode_fragment, container, false);
     }
 }

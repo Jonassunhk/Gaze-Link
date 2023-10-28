@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity implements ContractInterface.View {
+public class MainActivity extends AppCompatActivity implements ContractInterface.View, calibration.OnButtonClickListener {
 
     // creating object of Presenter interface in Contract
     ContractInterface.Presenter presenter;
@@ -72,12 +72,15 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         } else{
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
         }
-
         viewModel = new ViewModelProvider(this).get(UIViewModel.class);
 
-        Button devButton;
+
+        Button devButton, quickButton, calibrateButton;
+
         devButton = findViewById(R.id.devModeButton);
-        Button quickButton = findViewById(R.id.quickModeButton);
+        quickButton = findViewById(R.id.quickModeButton);
+        calibrateButton =  findViewById(R.id.calibrateButton);
+
         FragmentManager fragmentManager = getSupportFragmentManager();
 
         devButton.setOnClickListener(v -> fragmentManager.beginTransaction()
@@ -87,16 +90,16 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
                 .commit());
 
         quickButton.setOnClickListener(v -> fragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainerView, quick_mode_display.class, null)
+                .replace(R.id.fragmentContainerView, text_mode_display.class, null)
                 .setReorderingAllowed(true)
                 .addToBackStack("quick_fragment") // Name can be null
                 .commit());
 
-//
-//        texts[0] = findViewById(R.id.textView1);
-//        texts[1] = findViewById(R.id.textView2);
-//        texts[2] = findViewById(R.id.textView3);
-//        texts[3] = findViewById(R.id.textView4);
+        calibrateButton.setOnClickListener(v -> fragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainerView, calibration.class, null)
+                .setReorderingAllowed(true)
+                .addToBackStack("calibrate_fragment") // Name can be null
+                .commit());
     }
 
     @Override
@@ -105,27 +108,17 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
     }
 
     @Override
-    public void showInput(int gazeCode) {
-
+    public void onCalibrationButtonClick() {
+        presenter.updateCalibration();
     }
 
     @Override
-    public void displayDetectData(DetectionOutput detectionOutput) {
+    public void updateLiveData(AppLiveData appLiveData) {
         Runnable myRunnable = () -> {
-            viewModel.selectItem(detectionOutput);
+            viewModel.selectItem(appLiveData);
         };
         mainHandler.post(myRunnable);
     }
-
-    @Override
-    public void displayText(int code, String text) {
-        TextView view = texts[code];
-        if (view != null) {
-            runOnUiThread(() -> view.setText(text));
-        }
-        Log.d("MVPView", "Displayed text on activity");
-    }
-
     @Override
     public void displayImage(int code, Bitmap bitmap) {
         ImageView view = images[code];
@@ -219,5 +212,4 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
             }
         }
     }
-
 }
