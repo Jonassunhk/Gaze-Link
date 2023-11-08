@@ -104,7 +104,6 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
 
     @Override
     public void switchMode(String activityName) {
-
     }
 
     @Override

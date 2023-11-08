@@ -4,6 +4,7 @@ package com.demo.opencv;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.media.Image;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -30,8 +31,9 @@ public class calibration extends Fragment {
     TextView instruction;
     Handler handler;
     Runnable updateUI;
-    ImageView calibrationLeft, calibrationRight;
+    ImageView[] leftTemplateViews;
     private OnButtonClickListener buttonClickListener;
+    boolean leftEyesDisplayed = true;
     public calibration() {
         // Required empty public constructor
     }
@@ -41,6 +43,7 @@ public class calibration extends Fragment {
         Utils.matToBitmap(mat,bm);
         return bm;
     }
+
 
     public interface OnButtonClickListener {
         void onCalibrationButtonClick();
@@ -58,6 +61,7 @@ public class calibration extends Fragment {
         super.onAttach(context);
         try {
             buttonClickListener = (OnButtonClickListener) context;
+            Log.d("Calibration", "Button listener implemented");
         } catch (ClassCastException e) {
             throw new ClassCastException(context + "must implement listener");
         }
@@ -66,11 +70,20 @@ public class calibration extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
 
         instruction = mActivity.findViewById(R.id.calibrationInstruction);
-        calibrationLeft = mActivity.findViewById(R.id.calibrationLeft);
-        calibrationRight = mActivity.findViewById(R.id.calibrationRight);
-        Button calibrationButton = mActivity.findViewById(R.id.calibrateButton);
+        leftTemplateViews = new ImageView[7];
+        leftTemplateViews[0] = mActivity.findViewById(R.id.calibrationLeft);
+        leftTemplateViews[1] = mActivity.findViewById(R.id.calibrationRight);
+        leftTemplateViews[2] = mActivity.findViewById(R.id.calibrationStraight);
+        leftTemplateViews[3] = mActivity.findViewById(R.id.calibrationUp);
+        leftTemplateViews[4] = mActivity.findViewById(R.id.calibrationDown);
+        leftTemplateViews[5] = mActivity.findViewById(R.id.calibrationLeftUp);
+        leftTemplateViews[6] = mActivity.findViewById(R.id.calibrationRightUp);
 
+        Button calibrationButton = mActivity.findViewById(R.id.calibrationButton);
+        Button switchEyesButton = mActivity.findViewById(R.id.switchEyesButton);
+        Log.d("Calibration", "here");
         calibrationButton.setOnClickListener(v -> onCalibrationButtonClick());
+        switchEyesButton.setOnClickListener(v -> leftEyesDisplayed = !leftEyesDisplayed);
 
         handler = new Handler(Looper.getMainLooper());
         updateUI = new Runnable(){
@@ -78,11 +91,19 @@ public class calibration extends Fragment {
             public void run() {
                 viewModel.getSelectedItem().observe(requireActivity(), item -> {
                     DetectionOutput detection = item.DetectionOutput;
-                    if (detection.testingMats[0] != null) {
-                        calibrationLeft.setImageBitmap(matToBitmap(detection.testingMats[0]));
+                    Bitmap[] images;
+                    if (leftEyesDisplayed) {
+                        images = item.leftTemplates;
+                    } else {
+                        images = item.rightTemplates;
                     }
-                    if (detection.testingMats[1] != null) {
-                        calibrationRight.setImageBitmap(matToBitmap(detection.testingMats[1]));
+
+                    for (int i = 0; i < 7; i++) {
+                        if (images[i] != null) {
+                            leftTemplateViews[i].setImageBitmap(images[i]);
+                        } else if (detection.testingMats[0] != null) {
+                            leftTemplateViews[i].setImageBitmap(matToBitmap(detection.testingMats[0]));
+                        }
                     }
                     if (item.calibrationInstruction != null) {
                         instruction.setText(item.calibrationInstruction);

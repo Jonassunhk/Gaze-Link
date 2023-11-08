@@ -2,7 +2,6 @@ package com.demo.opencv;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.PointF;
 import android.util.Log;
 
@@ -15,12 +14,11 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -36,10 +34,16 @@ public class Model implements ContractInterface.Model {
     private Queue<Integer> window;
     int gazeNum = 8; // number of types of gaze inputs
     int tempNum = 7;
+    int templateNum = 8;
+    int templateSuccessRate = 7;
     int[] gazeCount;
+    static int IMAGE_WIDTH = 44, IMAGE_HEIGHT = 18;
     String[] leftEyeFileNames = {"left_left", "left_right", "left_straight", "left_up", "left_down", "left_left_up", "left_right_up"};
     String[] rightEyeFileNames = {"right_left", "right_right", "right_straight", "right_up", "right_down", "right_left_up", "right_right_up"};
-    Bitmap[] calibrationImagesLeft, calibrationImagesRight;
+    public Bitmap[] leftCalibrationData, rightCalibrationData;
+    Integer[] tags = new Integer[]{1, 2, 0, 3, 4, 6, 7}; // should be flipped because of perspective
+    double[] leftTemplateError = new double[tempNum];
+    double[] rightTemplateError = new double[tempNum];
     @Override
     public void initialize(Context context) throws IOException { // initialize models, libraries, and datastore
 
@@ -59,35 +63,35 @@ public class Model implements ContractInterface.Model {
         faceDetector.initialize(); // initialize Google ML Kit
         userDataManager.initialize(context); // initialize settings
 
-        int[] left_id = {
-                R.drawable.left_left, R.drawable.left_right, R.drawable.left_straight, R.drawable.left_up,
-                R.drawable.left_down, R.drawable.left_left_up, R.drawable.left_right_up};
-
-        int[] right_id = {
-                R.drawable.right_left, R.drawable.right_right, R.drawable.right_straight, R.drawable.right_up,
-                R.drawable.right_down, R.drawable.right_left_up, R.drawable.right_right_up};
-
         // calibration process
-        calibrationImagesLeft = userDataManager.getCalibrationFiles(context, leftEyeFileNames);
-        calibrationImagesRight = userDataManager.getCalibrationFiles(context, rightEyeFileNames);
+        leftCalibrationData = userDataManager.getCalibrationFiles(context, leftEyeFileNames);
+        rightCalibrationData = userDataManager.getCalibrationFiles(context, rightEyeFileNames);
 
-        if (calibrationImagesLeft == null || calibrationImagesRight == null) {
-            Log.d("MVPModel", "calibration incomplete");
-            // testing, get the bitmaps from the template images
-            Bitmap[] calibrateLeft = new Bitmap[tempNum];
-            for (int i = 0; i < left_id.length; i++) {
-                calibrateLeft[i] = BitmapFactory.decodeResource(context.getResources(), left_id[i]);
-            }
-            Bitmap[] calibrateRight = new Bitmap[tempNum];
-            for (int i = 0; i < right_id.length; i++) {
-                calibrateRight[i] = BitmapFactory.decodeResource(context.getResources(), right_id[i]);
-            }
-            userDataManager.storeCalibrationFiles(context, leftEyeFileNames, calibrateLeft);
-            userDataManager.storeCalibrationFiles(context, rightEyeFileNames, calibrateRight);
-            Log.d("MVPModel", "Calibration data stored");
+        if (leftCalibrationData == null || rightCalibrationData == null) {
+            Log.d("Calibration", "calibration incomplete");
         } else {
-            Log.d("MVPModel", "calibration data found, complete");
+            detector.loadCalibratedTemplates(true, leftCalibrationData);
+            detector.loadCalibratedTemplates(false, rightCalibrationData);
+            Log.d("Calibration", "calibration data found, complete");
         }
+    }
+
+    private boolean gazingLeft(GazeData gaze) {
+        return gaze.GazeType == 1 || gaze.GazeType == 6;
+    }
+
+    private boolean gazingRight(GazeData gaze) {
+        return gaze.GazeType == 2 || gaze.GazeType == 7;
+    }
+
+    @Override
+    public void setCalibrationTemplates(Context context, Bitmap[] leftEye, Bitmap[] rightEye) { // import calibration images
+        leftCalibrationData = leftEye;
+        rightCalibrationData = rightEye;
+        userDataManager.storeCalibrationFiles(context, leftEyeFileNames, leftEye); // data store
+        userDataManager.storeCalibrationFiles(context, rightEyeFileNames, rightEye); // data store
+        detector.loadCalibratedTemplates(true, leftEye);
+        detector.loadCalibratedTemplates(false, rightEye);
     }
 
     @Override
@@ -102,12 +106,34 @@ public class Model implements ContractInterface.Model {
         } else if (!detectionOutput.LeftData.Success) { // only right eye available
             detectionOutput.AnalyzedData = detectionOutput.RightData;
 
-        } else { // if both eyes are successful, take the gaze input with the lower loss
-            if (detectionOutput.LeftData.GazeProbability <= detectionOutput.RightData.GazeProbability) {
-                detectionOutput.AnalyzedData = detectionOutput.LeftData;
-            } else {
-                detectionOutput.AnalyzedData = detectionOutput.RightData;
+        } else { // if both eyes are successful, add the two loss and take the lowest
+
+            GazeData leftGazeData = detectionOutput.LeftData;
+            GazeData rightGazeData = detectionOutput.RightData;
+
+            if (leftGazeData.GazeType == 5 && rightGazeData.GazeType == 5) { // eyes closed
+                detectionOutput.AnalyzedData = rightGazeData;
+
+            } else if (gazingLeft(leftGazeData) && gazingLeft(rightGazeData)) { // eyes looking left, take left eye
+                detectionOutput.AnalyzedData = leftGazeData;
+
+            } else if (gazingRight(leftGazeData) && gazingRight(rightGazeData)) { // eyes looking right, take right eye
+                detectionOutput.AnalyzedData = rightGazeData;
+
+            } else { // combine the two losses
+                int index = -1;
+                double minError = 1000000f;
+                for (int i = 0; i < tempNum; i++) {
+                    double error = leftTemplateError[i] + rightTemplateError[i];
+                    if (error < minError) {
+                        index = i;
+                        minError = error;
+                    }
+                }
+                boolean success = minError <= 0;
+                detectionOutput.setEyeData(2, success, tags[index], 1, (float)minError);
             }
+
         }
 
         detectionOutput.gestureOutput = 0;
@@ -116,7 +142,7 @@ public class Model implements ContractInterface.Model {
             window.add(type);
             gazeCount[type] += 1;
         }
-        if (window.size() == 12) { // enough frames to determine input
+        if (window.size() == templateNum) { // enough frames to determine input
             int index = 0, max = -1;
             for (int i = 0; i < gazeCount.length; i++) { // get max in array
                 if (gazeCount[i] > max) {
@@ -126,14 +152,14 @@ public class Model implements ContractInterface.Model {
             }
             //Log.d("MVPModel", Arrays.toString(gazeCount));
             String gazeType = detectionOutput.AnalyzedData.getTypeString(index);
-            if (max >= 5 && !Objects.equals(gazeType, "Straight")) { // more than half of the inputs, not straight, counts
+            if (max >= templateSuccessRate && !Objects.equals(gazeType, "Straight")) { // more than half of the inputs, not straight, counts
+                if (prevInputs.size() > 20) {
+                    prevInputs.clear();
+                }
                 prevInputs.add(gazeType);
                 detectionOutput.prevInputs = prevInputs;
                 detectionOutput.gestureOutput = index;
 
-                if (prevInputs.size() > 10) {
-                    prevInputs.clear();
-                }
                 window.clear(); // clear window after input detected
                 gazeCount = new int[gazeNum];
             } else {
@@ -141,7 +167,6 @@ public class Model implements ContractInterface.Model {
                 gazeCount[lastIndex] -= 1; // decrease number
             }
         }
-
     }
 
     private Rect getBoundingBox(List<PointF> points, Mat mat) {
@@ -156,6 +181,15 @@ public class Model implements ContractInterface.Model {
             minY = Math.min(minY, (int) points.get(i).y);
         }
 
+        maxX += 3;
+        maxY += 3;
+        minX -= 3;
+        minY -= 3;
+//        maxX = (int) points.get(8).x;
+//        maxY = (int) points.get(12).y;
+//        minX = (int) points.get(0).x;
+//        minY = (int) points.get(4).y;
+
         Rect boundingBox;
         if (minX >= 0 && minY >= 0 && maxX < mat.cols() && maxY < mat.rows() && minX < maxX && minY < maxY) { // contour is valid
             boundingBox = new Rect(new Point(minX, minY), new Point(maxX, maxY));
@@ -165,16 +199,31 @@ public class Model implements ContractInterface.Model {
         }
     }
 
-
+    private Rect getSurroundBox(PointF point, Mat mat) {
+        Rect boundingBox;
+        int minX = (int) point.x - IMAGE_WIDTH / 2;
+        int maxX = (int) point.x + IMAGE_WIDTH / 2;
+        int minY = (int) point.y - IMAGE_HEIGHT / 2;
+        int maxY = (int) point.y + IMAGE_HEIGHT / 2;
+        if (minX >= 0 && minY >= 0 && maxX < mat.cols() && maxY < mat.rows() && minX < maxX && minY < maxY) { // contour is valid
+            boundingBox = new Rect(new Point(minX, minY), new Point(maxX, maxY));
+            return boundingBox;
+        } else {
+            return null;
+        }
+    }
 
     @Override
     public DetectionOutput classifyGaze(Mat rgbMat) { @OptIn(markerClass = ExperimentalGetImage.class)
 
         Mat leftEye = null, rightEye = null;
         Bitmap bmp;
+
         // opencv detection
+        //Mat grayMat = new Mat();
         //Imgproc.cvtColor(rgbMat, grayMat, Imgproc.COLOR_RGB2GRAY);
-        //gazeInput = detector.faceEyeDetection(grayMat); // detect gaze
+        //Mat openCVLeft = detector.faceEyeDetection(grayMat); // detect gaze
+
         // google ml kit detection
         Mat rgbaMat = new Mat(rgbMat.cols(), rgbMat.rows(), CvType.CV_8UC4);
         Imgproc.cvtColor(rgbMat, rgbaMat, Imgproc.COLOR_BGR2RGBA);
@@ -183,44 +232,69 @@ public class Model implements ContractInterface.Model {
         faceDetector.detect(bmp);
 
         // initialization
-        detectionOutput.LeftData = new GazeData();
-        detectionOutput.LeftData.Success = false;
-        detectionOutput.RightData = new GazeData();
-        detectionOutput.RightData.Success = false;
-        detectionOutput.testingMats = new Mat[2];
+        detectionOutput.initialize(2);
         
         if (faceDetector.leftEyeContour == null && faceDetector.rightEyeContour == null) { // no eye detection
             return detectionOutput;
         
-        } else if (faceDetector.leftEyeOpenProb <= 0.2 && faceDetector.rightEyeOpenProb <= 0.1) { // check if eyes are closed
+        } else if (faceDetector.leftEyeOpenProb <= 0.1 && faceDetector.rightEyeOpenProb <= 0.1) { // check if eyes are closed
             detectionOutput.setEyeData(0, true, 5, 1, faceDetector.leftEyeOpenProb);
             detectionOutput.setEyeData(1, true, 5, 1, faceDetector.rightEyeOpenProb);
         } else {
             if (faceDetector.leftEyeContour != null) { // left eye available
+
                 List<PointF> leftEyePoints = faceDetector.leftEyeContour.getPoints();
                 Rect leftEyeBound = getBoundingBox(leftEyePoints, rgbMat);
+
+                //Rect leftEyeBound = getSurroundBox(faceDetector.leftEyePos, rgbMat);
                 if (leftEyeBound != null) {
                   //  Log.d("MVPModel", "Rect Dimensions: " + leftEyeBound.x + ' ' + leftEyeBound.y + ' ' + leftEyeBound.height + ' ' + leftEyeBound.width);
                     leftEye = new Mat(rgbMat, leftEyeBound);
+                    Log.d("MVPModel", "Image Dimensions: " + leftEye.cols() + " " + leftEye.rows());
+                    Imgproc.resize(leftEye, leftEye, new Size(IMAGE_WIDTH, IMAGE_HEIGHT), Imgproc.INTER_LINEAR);
                     Imgproc.cvtColor(leftEye, leftEye, Imgproc.COLOR_RGB2GRAY);
-                    detectionOutput = detector.runEyeModel(detectionOutput, leftEye, 0);
+                    //Imgproc.blur(leftEye, leftEye, new Size(3,3));
+
+                    if (leftCalibrationData != null) { // if there are calibration images
+                        leftTemplateError = detector.runEyeModel(detectionOutput, leftEye, 0);
+                    }
                 }
             }
             if (faceDetector.rightEyeContour != null) { // right eye available
+
                 List<PointF> rightEyePoints = faceDetector.rightEyeContour.getPoints();
                 Rect rightEyeBound = getBoundingBox(rightEyePoints, rgbMat);
+
+                //Rect rightEyeBound = getSurroundBox(faceDetector.rightEyePos, rgbMat);
                 if (rightEyeBound != null) {
                   //  Log.d("MVPModel", "Rect Dimensions: " + rightEyeBound.x + ' ' + rightEyeBound.y + ' ' + rightEyeBound.height + ' ' + rightEyeBound.width);
                     rightEye = new Mat(rgbMat, rightEyeBound);
+                    Imgproc.resize(rightEye, rightEye, new Size(IMAGE_WIDTH, IMAGE_HEIGHT), Imgproc.INTER_LINEAR);
                     Imgproc.cvtColor(rightEye, rightEye, Imgproc.COLOR_RGB2GRAY);
-                    detectionOutput = detector.runEyeModel(detectionOutput, rightEye, 1);
+                    //Imgproc.blur(rightEye, rightEye, new Size(3,3));
+
+                    if (rightCalibrationData != null) { // if there are calibration images
+                        rightTemplateError = detector.runEyeModel(detectionOutput, rightEye, 1);
+                    }
                 }
             }
         }
+
+
         //testing data
         detectionOutput.testingMats[0] = leftEye;
         detectionOutput.testingMats[1] = rightEye;
         analyzeGazeOutput(); // analyze the output before returning to the presenter
         return detectionOutput;
+    }
+
+    @Override
+    public Bitmap[] getLeftCalibrationData() {
+        return leftCalibrationData;
+    }
+
+    @Override
+    public Bitmap[] getRightCalibrationData() {
+        return rightCalibrationData;
     }
 }

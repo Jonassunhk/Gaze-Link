@@ -18,6 +18,21 @@
         tools:layout_editor_absoluteY="0dp">
 
         <TextView
+            android:id="@+id/deleteButton"
+            android:layout_width="120sp"
+            android:layout_height="75sp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="#DFDED8"
+            android:textAlignment="center"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@+id/keyboardClosedText"
+            app:layout_constraintEnd_toStartOf="@+id/keyboardClosedText"
+            tools:text="Left up: Delete" />
+
+        <TextView
             android:id="@+id/keyboardRightText"
             android:layout_width="120sp"
             android:layout_height="75sp"
@@ -25,16 +40,19 @@
             android:background="#DFDED8"
             android:textColor="#000000"
             android:textSize="20sp"
-            app:layout_constraintStart_toEndOf="@+id/keyboardStraightText"
-            app:layout_constraintTop_toTopOf="@+id/keyboardStraightText" />
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@+id/keyboardClosedText"
+            app:layout_constraintTop_toTopOf="@+id/keyboardClosedText" />
 
         <TextView
-            android:id="@+id/keyboardStraightText"
+            android:id="@+id/keyboardClosedText"
             android:layout_width="120sp"
             android:layout_height="75sp"
             android:background="#DFDED8"
+            android:textAlignment="center"
             android:textColor="#000000"
             android:textSize="20sp"
+            android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -49,8 +67,9 @@
             android:background="#DFDED8"
             android:textColor="#000000"
             android:textSize="20sp"
-            app:layout_constraintStart_toStartOf="@+id/keyboardStraightText"
-            app:layout_constraintTop_toBottomOf="@+id/keyboardStraightText" />
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="@+id/keyboardClosedText"
+            app:layout_constraintTop_toBottomOf="@+id/keyboardClosedText" />
 
         <TextView
             android:id="@+id/keyboardUpText"
@@ -60,8 +79,24 @@
             android:background="#DFDED8"
             android:textColor="#000000"
             android:textSize="20sp"
-            app:layout_constraintBottom_toTopOf="@+id/keyboardStraightText"
-            app:layout_constraintStart_toStartOf="@+id/keyboardStraightText" />
+            app:layout_constraintBottom_toTopOf="@+id/keyboardClosedText"
+            app:layout_constraintStart_toStartOf="@+id/keyboardClosedText"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/switchButton"
+            android:layout_width="120sp"
+            android:layout_height="75sp"
+            android:layout_marginStart="132dp"
+            android:layout_marginBottom="12dp"
+            android:background="#DFDED8"
+            android:textAlignment="center"
+            android:textColor="#000000"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@+id/keyboardClosedText"
+            app:layout_constraintStart_toStartOf="@+id/keyboardClosedText"
+            tools:text="Right up: Switch to Word Prediction" />
 
         <TextView
             android:id="@+id/keyboardLeftText"
@@ -71,8 +106,9 @@
             android:background="#DFDED8"
             android:textColor="#000000"
             android:textSize="20sp"
-            app:layout_constraintEnd_toStartOf="@+id/keyboardStraightText"
-            app:layout_constraintTop_toTopOf="@+id/keyboardStraightText" />
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@+id/keyboardClosedText"
+            app:layout_constraintTop_toTopOf="@+id/keyboardClosedText" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -97,7 +133,7 @@
             android:background="#8BC4CC"
             android:textAlignment="viewStart"
             android:textColor="#000000"
-            android:textSize="20sp"
+            android:textSize="15sp"
             tools:text="NO INPUT" />
     </LinearLayout>
 

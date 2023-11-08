@@ -17,8 +17,10 @@ public interface ContractInterface {
     interface Model {
         void analyzeGazeOutput(); // method that runs with new user gaze input
         void initialize(Context context) throws IOException; // method to initialize models in the database (OpenCV, TensorFlow Lite, ChatGPT, etc.)
+        void setCalibrationTemplates(Context context, Bitmap[] leftEye, Bitmap[] rightEye);
         DetectionOutput classifyGaze(Mat rgbMat); // determine gaze code with output
-
+        Bitmap[] getLeftCalibrationData();
+        Bitmap[] getRightCalibrationData();
     }
 
     interface Presenter {

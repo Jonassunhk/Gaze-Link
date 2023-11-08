@@ -42,6 +42,10 @@ android {
         }
     }
 
+    aaptOptions {
+        noCompress "txt"
+    }
+
     buildTypes {
         release {
             minifyEnabled false

@@ -30,7 +30,7 @@ public class dev_mode_display extends Fragment {
     private UIViewModel viewModel;
     Activity mActivity;
     ImageView[] images = new ImageView[4];
-    TextView[] texts = new TextView[4];
+    TextView[] texts = new TextView[8];
     Handler handler;
     Runnable updateUI;
     public dev_mode_display() {
@@ -72,6 +72,10 @@ public class dev_mode_display extends Fragment {
         texts[1] = mActivity.findViewById(R.id.textView2);
         texts[2] = mActivity.findViewById(R.id.textView3);
         texts[3] = mActivity.findViewById(R.id.textView4);
+        texts[4] = mActivity.findViewById(R.id.textView5);
+        texts[5] = mActivity.findViewById(R.id.textView6);
+        texts[6] = mActivity.findViewById(R.id.textView7);
+        texts[7] = mActivity.findViewById(R.id.textView8);
 
         handler = new Handler(Looper.getMainLooper());
         updateUI = new Runnable(){
@@ -90,13 +94,22 @@ public class dev_mode_display extends Fragment {
                         }
                     }
                     if (detection.AnalyzedData != null) {
-                        texts[0].setText(detection.AnalyzedData.getTypeString(detection.AnalyzedData.GazeType));
-                        texts[1].setText(String.format("%.2f", detection.AnalyzedData.GazeProbability));
+                        String s = "Overall Gaze Type: " + detection.AnalyzedData.getTypeString(detection.AnalyzedData.GazeType);
+                        texts[1].setText(s);
+
+                        s = "Overall Loss: " + String.format("%.2f", detection.AnalyzedData.GazeProbability);
+                        texts[2].setText(s);
+
+                        s = "Left Gaze Type: " + detection.LeftData.getTypeString(detection.LeftData.GazeType);
+                        texts[4].setText(s);
+
+                        s = "Right Gaze Type: " + detection.RightData.getTypeString(detection.RightData.GazeType);
+                        texts[5].setText(s);
 
                         if (detection.AnalyzedData.Success) { // check if the final output is successful
-                            texts[2].setText("GAZE DETECTED");
+                            texts[0].setText("GAZE DETECTED");
                         } else {
-                            texts[2].setText("---------------");
+                            texts[0].setText("---------------");
                         }
                     }
                 });
