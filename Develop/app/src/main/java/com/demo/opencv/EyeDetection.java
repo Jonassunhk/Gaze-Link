@@ -11,7 +11,6 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
@@ -28,9 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -41,24 +37,9 @@ public class EyeDetection extends AppCompatActivity {
     public Mat faceROI, originalImage, squaredROI, rightFaceROI, leftFaceROI, rightEyeROI, leftEyeROI;
     Mat[] leftTemplates, rightTemplates;
     Integer[] tags;
-    int tempNum = 10;
-    static int IMAGE_WIDTH = 120, IMAGE_HEIGHT = 45;
-    Float[] DETECT_THRESHOLDS = {60f, 55.0f, 55.0f, 55f, 55f, 0f}; // straight, left, right, up, down, closed (N/A)
-
-//    public Mat rotateMat(Mat mat, 1double angle) {
-//
-//        Mat rotated_mat = new Mat();
-//        Point rotPoint = new Point(mat.cols() / 2.0,
-//                mat.rows() / 2.0);
-//        // Create Rotation Matrix
-//        Mat rotMat = Imgproc.getRotationMatrix2D(
-//                rotPoint, angle, 1);
-//
-//        // Apply Affine Transformation
-//        Imgproc.warpAffine(mat, rotated_mat, rotMat, mat.size(),
-//                Imgproc.WARP_INVERSE_MAP);
-//        return rotated_mat;
-//    }
+    int tempNum = 7;
+    static int IMAGE_WIDTH = 40, IMAGE_HEIGHT = 14;
+    Float[] DETECT_BIAS = {55f, 62f, 62f, 80f, -100f, 0f, 75f, 75f}; // straight, left, right, up, down, closed, leftUp, rightUp (N/A)
 
     public void loadTensorModel() throws IOException {
         ByteBuffer model = loadModelFile();
@@ -75,6 +56,21 @@ public class EyeDetection extends AppCompatActivity {
         Imgproc.resize(templates[index], templates[index], new Size(IMAGE_WIDTH,IMAGE_HEIGHT), Imgproc.INTER_AREA);
     }
 
+    public void loadCalibratedTemplates(boolean left, Bitmap[] bm) {
+        Mat[] templates;
+        if (left) {
+            templates = leftTemplates;
+        } else {
+            templates = rightTemplates;
+        }
+        for (int i = 0; i < tempNum; i++) {
+            templates[i] = new Mat(bm[i].getWidth(), bm[i].getHeight(), CvType.CV_8UC4);
+            Utils.bitmapToMat(bm[i], templates[i]);
+            Imgproc.cvtColor(templates[i], templates[i], Imgproc.COLOR_BGR2GRAY);
+            Imgproc.resize(templates[i], templates[i], new Size(IMAGE_WIDTH,IMAGE_HEIGHT), Imgproc.INTER_AREA);
+        }
+    }
+
     public void loadOpenCVModels(int[] files) { // use input output stream to write CascadeClassifier
 
         leftTemplates = new Mat[tempNum];
@@ -85,20 +81,25 @@ public class EyeDetection extends AppCompatActivity {
                 R.drawable.left_right, R.drawable.left_right2,
                 R.drawable.left_straight, R.drawable.left_straight2,
                 R.drawable.left_up, R.drawable.left_up2,
-                R.drawable.left_down, R.drawable.left_down2};
+                R.drawable.left_down, R.drawable.left_down2,
+                R.drawable.left_left_up, R.drawable.left_left_up2,
+                R.drawable.left_right_up, R.drawable.left_right_up2};
 
         int[] right_id = {
                 R.drawable.right_left, R.drawable.right_left2,
                 R.drawable.right_right, R.drawable.right_right2,
                 R.drawable.right_straight, R.drawable.right_straight2,
                 R.drawable.right_up, R.drawable.right_up2,
-                R.drawable.right_down, R.drawable.right_down2};
+                R.drawable.right_down, R.drawable.right_down2,
+                R.drawable.right_left_up, R.drawable.right_left_up2,
+                R.drawable.right_right_up, R.drawable.right_right_up2};
 
-        for (int i = 0; i < tempNum; i++) {
-            loadTemplates(leftTemplates, i, left_id[i]);
-            loadTemplates(rightTemplates, i, right_id[i]);
-        }
-        tags = new Integer[]{2, 2, 1, 1, 0, 0, 3, 3, 4, 4}; // should be flipped because of perspective
+//        for (int i = 0; i < tempNum; i++) {
+//            loadTemplates(leftTemplates, i, left_id[i]);
+//            loadTemplates(rightTemplates, i, right_id[i]);
+//        }
+
+        tags = new Integer[]{1, 2, 0, 3, 4, 6, 7}; // should be flipped because of perspective
 
         Resources res = mContext.getResources();
         for (int code : files) { // loop to initiate the three cascade classifiers
@@ -144,32 +145,28 @@ public class EyeDetection extends AppCompatActivity {
         double sum;
         Mat difMat = new Mat(h, w, CvType.CV_8UC4);
         Imgproc.cvtColor(difMat, difMat, Imgproc.COLOR_BGR2GRAY);
-        Log.d("EyeDetection", a.channels() + " " + b.channels() + " " + difMat.channels());
-        Core.subtract(a, b, difMat);
+        Mat norA = new Mat();
+        Mat norB = new Mat();
+        a.convertTo(norA, CvType.CV_32F, 1.0/255, 0);
+        b.convertTo(norB, CvType.CV_32F, 1.0/255, 0);
+        //Log.d("EyeDetection", a.channels() + " " + b.channels() + " " + difMat.channels());
+        Core.subtract(norA, norB, difMat);
         Mat destSquared = difMat.mul(difMat);
         Scalar s = Core.sumElems(destSquared);
         double d = (float) h * w;
         sum = s.val[0] / d;
         return sum;
     }
-    public DetectionOutput runEyeModel(DetectionOutput detectionOutput, Mat eyeROI, int type) {
-
-//        // create mat resized with black background
-//        Mat squareMat = new Mat(eyeROI.cols(), eyeROI.cols(), Imgproc.COLOR_BGR2GRAY);
-//        squareMat.convertTo(squareMat,CvType.CV_8UC4);
-        // create ROI for resized and add the eye in the middle
-//        int startY = eyeROI.cols() / 2 - eyeROI.rows() / 2;
-//        Rect ROI = new Rect(0,startY, eyeROI.cols(), eyeROI.rows());
-//        eyeROI.copyTo(squareMat.submat(ROI));
-
-        eyeROI.convertTo(eyeROI, CvType.CV_8UC4);
-
-        // resize the mat to the correct image size
-        Mat tensorMat = new Mat(IMAGE_HEIGHT, IMAGE_WIDTH, CvType.CV_8UC4);
-        // squareMat.convertTo(squareMat, -1, 1.4,1.5); // HMC Classroom lighting settings (temporary)
-        Imgproc.resize(eyeROI, tensorMat, new Size(IMAGE_WIDTH, IMAGE_HEIGHT), Imgproc.INTER_AREA);
+    public double[] runEyeModel(DetectionOutput detectionOutput, Mat eyeROI, int type) {
 
         Mat[] compareTemplates;
+        double[] templateError = new double[tempNum];
+
+        // resize the eyeROI to the correct image size/format
+        eyeROI.convertTo(eyeROI, CvType.CV_8UC4);
+        Mat tensorMat = new Mat(IMAGE_HEIGHT, IMAGE_WIDTH, CvType.CV_8UC4);
+        Imgproc.resize(eyeROI, tensorMat, new Size(IMAGE_WIDTH, IMAGE_HEIGHT), Imgproc.INTER_AREA);
+
         if (type == 0) {
             compareTemplates = leftTemplates;
             detectionOutput.testingMats[0] = tensorMat;
@@ -181,73 +178,21 @@ public class EyeDetection extends AppCompatActivity {
         double minError = 10000000;
         int index = 0;
         for (int i = 0; i < tempNum; i++) {
-            double sum = mse(compareTemplates[i], tensorMat, IMAGE_HEIGHT, IMAGE_WIDTH);
+            double sum = mse(compareTemplates[i], tensorMat, IMAGE_HEIGHT, IMAGE_WIDTH); // - DETECT_BIAS[tags[i]];
+            templateError[i] = sum;
             if (sum < minError) {
                 minError = sum;
                 index = i;
             }
         }
 
-        Boolean success = minError <= DETECT_THRESHOLDS[tags[index]]; // get threshold for the specific type
+        Boolean success = minError <= 0.02; // get threshold for the specific type
         detectionOutput.setEyeData(type, success, tags[index], 1, (float)minError);
 
-        return detectionOutput;
-        /*
-        Bitmap dst = Bitmap.createBitmap(tensorMat.width(), tensorMat.height(), Bitmap.Config.ARGB_8888);
-        tensorMat.convertTo(tensorMat,CvType.CV_8UC4);
-        Utils.matToBitmap(tensorMat, dst);
+        return templateError;
 
-        ByteBuffer buffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.nativeOrder());
-
-        int[] pixels = new int[IMAGE_SIZE*IMAGE_SIZE];
-        dst.getPixels(pixels,0,IMAGE_SIZE,0,0,IMAGE_SIZE,IMAGE_SIZE);
-
-        for (int pixel: pixels) {
-            buffer.putFloat((float) (Color.red(pixel) / 255.0));
-        }
-
-        int bufferSize = 3 * java.lang.Float.SIZE / java.lang.Byte.SIZE;
-        ByteBuffer modelOutput = ByteBuffer.allocateDirect(bufferSize).order(ByteOrder.nativeOrder());
-
-        gazeClassifier.run(buffer, modelOutput);
-
-        modelOutput.rewind();
-        FloatBuffer probabilities = modelOutput.asFloatBuffer();
-
-        float maxProbability = 0;
-        int type = 0;
-        String[] labels = {"left", "straight", "right"};
-
-        for (int i = 0; i < probabilities.capacity(); i++) {
-            float probability = probabilities.get(i);
-            Log.d("TensorModel", "Probability for class " + i + " is " + probability);
-            if (probability > maxProbability) {
-                maxProbability = probability;
-                type = i;
-            }
-        }
-        */
     }
-    private Point add(Point a, Point b) {
-        Point z = new Point();
-        z.x = a.x + b.x;
-        z.y = a.y + b.y;
-        return z;
-    }
-    private MatOfPoint find_max_contour(Mat targetMat) {
-        List<MatOfPoint> contours = new ArrayList<>();
-        Mat hierarchy = new Mat();
-        MatOfPoint maxContour = new MatOfPoint();
-        Imgproc.findContours(targetMat, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
-        // sorting
-        contours.sort((c1, c2) -> (int) (Imgproc.contourArea(c1)- Imgproc.contourArea(c2)));
-        // drawing and finding contour
-        //Imgproc.drawContours(drawMat, contours, contours.size() - 1, new Scalar(255,0,0), 1, Imgproc.LINE_8, hierarchy, 2, new Point());
-        if (contours.size() > 0) {
-            maxContour = contours.get(contours.size() - 1);
-        }
-        return maxContour;
-    }
+
     private Mat crop_eye_ROI(Mat ROI, Rect eye) {
         //eye ROI cropping: removing the eyebrows
         double topCrop = 0.5f;
@@ -285,14 +230,14 @@ public class EyeDetection extends AppCompatActivity {
         );
         return eyesDetected.toArray();
     }
-    public void faceEyeDetection(Mat inputImage) {
+    public Mat faceEyeDetection(Mat inputImage) {
 
         Rect[] facesArray, leftEyesArray, rightEyesArray;
         squaredROI = new Mat();
 
         if (faceDetector == null || eyeDetector == null) {
             Log.d("EyeDetectionCheck", "Waiting for Cascade to load");
-            return;
+            return null;
         }
 
         //Noise Reduction
@@ -347,6 +292,7 @@ public class EyeDetection extends AppCompatActivity {
         } else {
             Log.d("EyeDetectionCheck","More than one face detected: " + faceCount);
         }
+        return leftEyeROI;
     }
 }
 
@@ -389,3 +335,40 @@ public class EyeDetection extends AppCompatActivity {
 //Features2d.drawKeypoints(eyeMat, keyPoints, eyeMat, new Scalar(0,255,0), Features2d.DrawMatchesFlags_DRAW_RICH_KEYPOINTS);
 //display_mat(eyeMat, image3);
 //display_mat(draw, display);
+
+// old code for tensorflow model:
+/*
+        Bitmap dst = Bitmap.createBitmap(tensorMat.width(), tensorMat.height(), Bitmap.Config.ARGB_8888);
+        tensorMat.convertTo(tensorMat,CvType.CV_8UC4);
+        Utils.matToBitmap(tensorMat, dst);
+
+        ByteBuffer buffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.nativeOrder());
+
+        int[] pixels = new int[IMAGE_SIZE*IMAGE_SIZE];
+        dst.getPixels(pixels,0,IMAGE_SIZE,0,0,IMAGE_SIZE,IMAGE_SIZE);
+
+        for (int pixel: pixels) {
+            buffer.putFloat((float) (Color.red(pixel) / 255.0));
+        }
+
+        int bufferSize = 3 * java.lang.Float.SIZE / java.lang.Byte.SIZE;
+        ByteBuffer modelOutput = ByteBuffer.allocateDirect(bufferSize).order(ByteOrder.nativeOrder());
+
+        gazeClassifier.run(buffer, modelOutput);
+
+        modelOutput.rewind();
+        FloatBuffer probabilities = modelOutput.asFloatBuffer();
+
+        float maxProbability = 0;
+        int type = 0;
+        String[] labels = {"left", "straight", "right"};
+
+        for (int i = 0; i < probabilities.capacity(); i++) {
+            float probability = probabilities.get(i);
+            Log.d("TensorModel", "Probability for class " + i + " is " + probability);
+            if (probability > maxProbability) {
+                maxProbability = probability;
+                type = i;
+            }
+        }
+        */

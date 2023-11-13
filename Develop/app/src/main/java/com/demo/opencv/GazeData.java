@@ -6,7 +6,7 @@ public class GazeData {
     int GazeType;
     int GazeLength;
     float GazeProbability;
-    private final String[] reference = {"Straight", "Left", "Right", "Up", "Down", "Closed"};
+    private final String[] reference = {"Straight", "Left", "Right", "Up", "Down", "Closed", "LeftUp", "RightUp"};
 
     public void setGazeData(Boolean success, int gazeType, int gazeLength, float gazeProbability) {
         this.Success = success;
@@ -15,8 +15,8 @@ public class GazeData {
         this.GazeProbability = gazeProbability;
     }
 
-    public String getTypeString() {
-        return reference[this.GazeType];
+    public String getTypeString(int index) {
+        return reference[index];
     }
 
 }

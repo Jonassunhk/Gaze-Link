@@ -30,6 +30,7 @@ public class GoogleFaceDetector {
 
     // required public data
     public FaceContour leftEyeContour, rightEyeContour;
+    public PointF leftEyePos, rightEyePos;
     public float rightEyeOpenProb, leftEyeOpenProb, rotY, rotZ;
     public Rect faceBound;
 
@@ -51,8 +52,20 @@ public class GoogleFaceDetector {
             rotZ = face.getHeadEulerAngleZ();  // Head is tilted sideways rotZ degrees
 
             // If contour detection was enabled:
-            leftEyeContour = face.getContour(FaceContour.LEFT_EYE);
-            rightEyeContour = face.getContour(FaceContour.RIGHT_EYE);
+           // if (leftEyeContour == null || rightEyeContour == null) {
+                leftEyeContour = face.getContour(FaceContour.LEFT_EYE);
+                rightEyeContour = face.getContour(FaceContour.RIGHT_EYE);
+           // }
+
+//            FaceLandmark leftEye = face.getLandmark(FaceLandmark.LEFT_EYE);
+//            if (leftEye != null) {
+//                leftEyePos = leftEye.getPosition();
+//            }
+//
+//            FaceLandmark rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE);
+//            if (rightEye != null) {
+//                rightEyePos = rightEye.getPosition();
+//            }
 
             // If classification was enabled:
             if (face.getLeftEyeOpenProbability() != null) {

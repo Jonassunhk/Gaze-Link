@@ -42,6 +42,10 @@ android {
         }
     }
 
+    aaptOptions {
+        noCompress "txt"
+    }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -89,6 +93,10 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
     implementation 'com.google.mlkit:face-detection:16.1.5'
+
+    implementation "androidx.datastore:datastore-preferences:1.0.0"
+    implementation "androidx.datastore:datastore-preferences-rxjava2:1.0.0" // optional - RxJava2 support
+    implementation "androidx.datastore:datastore-preferences-rxjava3:1.0.0" // optional - RxJava3 support
 
     def camerax_version = "1.1.0-beta01"
     implementation "androidx.camera:camera-core:${camerax_version}"
