@@ -15,7 +15,7 @@ public class Presenter implements ContractInterface.Presenter {
     private ContractInterface.View mainView; // creating object of View Interface
     private final ContractInterface.Model model; // creating object of Model Interface
     private final KeyboardManager keyboardManager = new KeyboardManager();
-    private final TextPrediction textPrediction = new TextPrediction();
+    private final WordPrediction wordPrediction = new WordPrediction();
     AppLiveData appliveData = new AppLiveData();
     int tempNum = 7;
     int calibrationState = -1; // -1 = idle, 0 - tempNum = during calibration
@@ -45,7 +45,7 @@ public class Presenter implements ContractInterface.Presenter {
         Log.d("MVPPresenter", "Model Initialized");
         model.initialize(mContext); // MVP model initialization
         keyboardManager.initialize(); // keyboard initialization
-        textPrediction.initialize(mContext); // text prediction initialization
+        wordPrediction.initialize(mContext); // text prediction initialization
 
         // calibration
         leftCalibrationData = model.getLeftCalibrationData(); // get original calibration data
@@ -100,8 +100,8 @@ public class Presenter implements ContractInterface.Presenter {
             int gazeType = detectionOutput.gestureOutput;
             Log.d("MVPPresenter", "Gesture Output: " + gazeType);
 
-            textPrediction.manageUserInput(gazeType);
-            KeyboardData keyboardData = textPrediction.getDisplays();
+            wordPrediction.manageUserInput(gazeType);
+            KeyboardData keyboardData = wordPrediction.getDisplays();
             appliveData.setKeyboardDisplays(keyboardData);
 
 //            old code for the keyboard manager

@@ -10,7 +10,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TextPrediction {
+public class WordPrediction {
     private final List<String> wordList = new ArrayList<>(); // top 5000 word frequency list
     private final List<String> blurryInputProcessed = new ArrayList<>(); // processed string with 1, 2, 3, and 4 for blurry input
     public String currentBlurryInput = ""; // in blurry input format
