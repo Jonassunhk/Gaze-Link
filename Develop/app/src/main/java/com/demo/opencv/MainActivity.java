@@ -12,7 +12,6 @@ import android.util.Log;
 import android.util.Range;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -32,6 +31,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.json.JSONException;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
@@ -44,7 +44,6 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
     // creating object of Presenter interface in Contract
     ContractInterface.Presenter presenter;
     public ImageView[] images = new ImageView[4];
-    public TextView[] texts = new TextView[4];
     private final int REQUEST_CODE_PERMISSIONS = 1001;
     private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA"};
     private final ExecutorService cameraExecutor = Executors.newSingleThreadExecutor();
@@ -60,8 +59,8 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         presenter = new Presenter(this, new Model());
 
         try {
-            presenter.initialize(this); // initialize presenter
-        } catch (IOException e) {
+            presenter.initialize(this, getApplicationContext()); // initialize presenter
+        } catch (IOException | JSONException e) {
             throw new RuntimeException(e);
         }
         //cameraXSetup.initializeCameraX(); // initialize cameraX (raw user input)
@@ -75,13 +74,20 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         viewModel = new ViewModelProvider(this).get(UIViewModel.class);
 
 
-        Button devButton, quickButton, calibrateButton;
+        Button devButton, textButton, calibrateButton, clinicianButton;
 
         devButton = findViewById(R.id.devModeButton);
-        quickButton = findViewById(R.id.quickModeButton);
+        textButton = findViewById(R.id.textModeButton);
         calibrateButton =  findViewById(R.id.calibrateButton);
+        clinicianButton = findViewById(R.id.clinicianModeButton);
 
         FragmentManager fragmentManager = getSupportFragmentManager();
+
+        clinicianButton.setOnClickListener(v -> fragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainerView, clinician_mode_display.class, null)
+                .setReorderingAllowed(true)
+                .addToBackStack("clinician_fragment") // Name can be null
+                .commit());
 
         devButton.setOnClickListener(v -> fragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainerView, dev_mode_display.class, null)
@@ -89,10 +95,10 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
                 .addToBackStack("dev_fragment") // Name can be null
                 .commit());
 
-        quickButton.setOnClickListener(v -> fragmentManager.beginTransaction()
+        textButton.setOnClickListener(v -> fragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainerView, text_mode_display.class, null)
                 .setReorderingAllowed(true)
-                .addToBackStack("quick_fragment") // Name can be null
+                .addToBackStack("text_fragment") // Name can be null
                 .commit());
 
         calibrateButton.setOnClickListener(v -> fragmentManager.beginTransaction()
@@ -113,9 +119,7 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
 
     @Override
     public void updateLiveData(AppLiveData appLiveData) {
-        Runnable myRunnable = () -> {
-            viewModel.selectItem(appLiveData);
-        };
+        Runnable myRunnable = () -> viewModel.selectItem(appLiveData);
         mainHandler.post(myRunnable);
     }
     @Override
@@ -159,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         ImageAnalysis.Builder newBuilder = new ImageAnalysis.Builder();
 
         Camera2Interop.Extender<ImageAnalysis> ext = new Camera2Interop.Extender<>(newBuilder);
-        int TARGET_FRAME_RATE = 12;
+        int TARGET_FRAME_RATE = 13;
         ext.setCaptureRequestOption(
                 CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                 new Range<>(TARGET_FRAME_RATE, TARGET_FRAME_RATE)
@@ -172,19 +176,21 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
             @OptIn(markerClass = ExperimentalGetImage.class)
             public void analyze(@NonNull ImageProxy image) {
 
-                //TODO: Finish setting up frame listener + image processing
-
-                if (image.getFormat() == ImageFormat.YUV_420_888 && image.getPlanes().length == 3) {
-                    Log.d("MVPView", "Image Format Correct: Frame Loaded");
-                    Image newImage = image.getImage();
-                    Mat rgbaMat = Yuv420.rgb(newImage);
-                    presenter.onFrame(rgbaMat);
-                    newImage.close();
+                if (presenter.presenterBusy) {
+                    image.close();
                 } else {
-                    Log.d("MVPView", "Image format not correct");
+                    if (image.getFormat() == ImageFormat.YUV_420_888 && image.getPlanes().length == 3) {
+                        Log.d("MVPView", "Image Format Correct: Frame Loaded");
+                        Image newImage = image.getImage();
+                        Mat rgbaMat = Yuv420.rgb(newImage);
+                        presenter.onFrame(rgbaMat);
+                        assert newImage != null;
+                        newImage.close();
+                    } else {
+                        Log.d("MVPView", "Image format not correct");
+                    }
+                    image.close();
                 }
-                image.close();
-
             }
         });
         cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis);

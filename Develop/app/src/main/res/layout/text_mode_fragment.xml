@@ -26,7 +26,7 @@
             android:background="#DFDED8"
             android:textAlignment="center"
             android:textColor="#000000"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toTopOf="@+id/keyboardClosedText"
             app:layout_constraintEnd_toStartOf="@+id/keyboardClosedText"
@@ -39,7 +39,7 @@
             android:layout_marginStart="12dp"
             android:background="#DFDED8"
             android:textColor="#000000"
-            android:textSize="20sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:layout_constraintStart_toEndOf="@+id/keyboardClosedText"
             app:layout_constraintTop_toTopOf="@+id/keyboardClosedText" />
@@ -49,9 +49,9 @@
             android:layout_width="120sp"
             android:layout_height="75sp"
             android:background="#DFDED8"
-            android:textAlignment="center"
+            android:textAlignment="viewStart"
             android:textColor="#000000"
-            android:textSize="20sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -66,7 +66,7 @@
             android:layout_marginTop="12dp"
             android:background="#DFDED8"
             android:textColor="#000000"
-            android:textSize="20sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="@+id/keyboardClosedText"
             app:layout_constraintTop_toBottomOf="@+id/keyboardClosedText" />
@@ -78,10 +78,10 @@
             android:layout_marginBottom="12dp"
             android:background="#DFDED8"
             android:textColor="#000000"
-            android:textSize="20sp"
+            android:textSize="15sp"
+            android:textStyle="bold"
             app:layout_constraintBottom_toTopOf="@+id/keyboardClosedText"
-            app:layout_constraintStart_toStartOf="@+id/keyboardClosedText"
-            android:textStyle="bold" />
+            app:layout_constraintStart_toStartOf="@+id/keyboardClosedText" />
 
         <TextView
             android:id="@+id/switchButton"
@@ -105,7 +105,7 @@
             android:layout_marginEnd="12dp"
             android:background="#DFDED8"
             android:textColor="#000000"
-            android:textSize="20sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@+id/keyboardClosedText"
             app:layout_constraintTop_toTopOf="@+id/keyboardClosedText" />

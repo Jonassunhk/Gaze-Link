@@ -18,13 +18,13 @@
         android:visibility="visible">
 
         <Button
-            android:id="@+id/quickModeButton"
+            android:id="@+id/clinicianModeButton"
             style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="#A56C6C"
-            android:text="Quick Mode" />
+            android:text="CLINICIAN MODE" />
 
         <Button
             android:id="@+id/textModeButton"

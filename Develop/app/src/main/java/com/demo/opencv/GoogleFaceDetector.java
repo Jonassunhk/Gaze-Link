@@ -37,6 +37,7 @@ public class GoogleFaceDetector {
     public void initialize() {
 
         realTimeOpts = new FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
                 .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
                 .build();
@@ -45,11 +46,15 @@ public class GoogleFaceDetector {
     }
 
     public void analyze(List<Face> faces) {
+        if (faces.size() == 0) { // prevent the previous input from continuing to work
+            leftEyeContour = null;
+            rightEyeContour = null;
+        }
         for (Face face : faces) {
             Log.d("googleFaceDetector", "face detected");
-            faceBound = face.getBoundingBox();
-            rotY = face.getHeadEulerAngleY();  // Head is rotated to the right rotY degrees
-            rotZ = face.getHeadEulerAngleZ();  // Head is tilted sideways rotZ degrees
+            //faceBound = face.getBoundingBox();
+            //rotY = face.getHeadEulerAngleY();  // Head is rotated to the right rotY degrees
+            //rotZ = face.getHeadEulerAngleZ();  // Head is tilted sideways rotZ degrees
 
             // If contour detection was enabled:
            // if (leftEyeContour == null || rightEyeContour == null) {

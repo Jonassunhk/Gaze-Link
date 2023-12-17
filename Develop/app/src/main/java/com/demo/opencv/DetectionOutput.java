@@ -14,6 +14,7 @@ Example: 1000 milliseconds, 1500 milliseconds, etc.
  */
 
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 
 import java.util.ArrayList;
 
@@ -42,6 +43,7 @@ public class DetectionOutput {
     }
 
     int gestureOutput; // an input from the user (not the raw data from the frame)
+    Point leftNIC, rightNIC; // Normalized Iris Center for both eyes
     Mat[] testingMats; // testing mats to show process of analysis
     ArrayList<String> prevInputs; // array to store previous inputs, null until presenter
 }

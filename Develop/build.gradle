@@ -3,4 +3,5 @@ plugins {
     id 'com.android.application' version '8.1.1' apply false
     id 'com.android.library' version '8.1.1' apply false // 8.0.2
     id 'org.jetbrains.kotlin.android' version '1.8.10' apply false
+    id 'com.google.gms.google-services' version '4.4.0' apply false
 }

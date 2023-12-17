@@ -11,12 +11,14 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.imgproc.Moments;
 import org.opencv.objdetect.CascadeClassifier;
 import org.tensorflow.lite.Interpreter;
 
@@ -27,24 +29,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 public class EyeDetection extends AppCompatActivity {
     private CascadeClassifier faceDetector, eyeDetector;
-    private Interpreter gazeClassifier;
     public Context mContext;
-    public Mat faceROI, originalImage, squaredROI, rightFaceROI, leftFaceROI, rightEyeROI, leftEyeROI;
+    public Mat faceROI, originalImage, squaredROI, rightFaceROI, leftFaceROI, rightEyeROI, leftEyeROI, finalMat;
     Mat[] leftTemplates, rightTemplates;
     Integer[] tags;
     int tempNum = 7;
     static int IMAGE_WIDTH = 40, IMAGE_HEIGHT = 14;
-    Float[] DETECT_BIAS = {55f, 62f, 62f, 80f, -100f, 0f, 75f, 75f}; // straight, left, right, up, down, closed, leftUp, rightUp (N/A)
 
     public void loadTensorModel() throws IOException {
         ByteBuffer model = loadModelFile();
         Interpreter.Options options = new Interpreter.Options();
-        gazeClassifier = new Interpreter(model, options);
+        Interpreter gazeClassifier = new Interpreter(model, options);
         Log.d("TensorModel", "loaded tensorflow lite model");
     }
 
@@ -76,23 +77,23 @@ public class EyeDetection extends AppCompatActivity {
         leftTemplates = new Mat[tempNum];
         rightTemplates = new Mat[tempNum];
 
-        int[] left_id = {
-                R.drawable.left_left, R.drawable.left_left2,
-                R.drawable.left_right, R.drawable.left_right2,
-                R.drawable.left_straight, R.drawable.left_straight2,
-                R.drawable.left_up, R.drawable.left_up2,
-                R.drawable.left_down, R.drawable.left_down2,
-                R.drawable.left_left_up, R.drawable.left_left_up2,
-                R.drawable.left_right_up, R.drawable.left_right_up2};
-
-        int[] right_id = {
-                R.drawable.right_left, R.drawable.right_left2,
-                R.drawable.right_right, R.drawable.right_right2,
-                R.drawable.right_straight, R.drawable.right_straight2,
-                R.drawable.right_up, R.drawable.right_up2,
-                R.drawable.right_down, R.drawable.right_down2,
-                R.drawable.right_left_up, R.drawable.right_left_up2,
-                R.drawable.right_right_up, R.drawable.right_right_up2};
+//        int[] left_id = {
+//                R.drawable.left_left, R.drawable.left_left2,
+//                R.drawable.left_right, R.drawable.left_right2,
+//                R.drawable.left_straight, R.drawable.left_straight2,
+//                R.drawable.left_up, R.drawable.left_up2,
+//                R.drawable.left_down, R.drawable.left_down2,
+//                R.drawable.left_left_up, R.drawable.left_left_up2,
+//                R.drawable.left_right_up, R.drawable.left_right_up2};
+//
+//        int[] right_id = {
+//                R.drawable.right_left, R.drawable.right_left2,
+//                R.drawable.right_right, R.drawable.right_right2,
+//                R.drawable.right_straight, R.drawable.right_straight2,
+//                R.drawable.right_up, R.drawable.right_up2,
+//                R.drawable.right_down, R.drawable.right_down2,
+//                R.drawable.right_left_up, R.drawable.right_left_up2,
+//                R.drawable.right_right_up, R.drawable.right_right_up2};
 
 //        for (int i = 0; i < tempNum; i++) {
 //            loadTemplates(leftTemplates, i, left_id[i]);
@@ -193,6 +194,53 @@ public class EyeDetection extends AppCompatActivity {
 
     }
 
+    public Point irisDetection(Mat ROI) {
+        Mat eroded = new Mat();
+        Mat threshold = new Mat();
+        Mat opening = new Mat();
+        Mat hierarchy = new Mat();
+        Point irisCenter = new Point();
+
+        Mat erode_kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
+        //Mat opening_kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
+        ArrayList<MatOfPoint> contours = new ArrayList<>();
+
+        // image processing
+        Imgproc.erode(ROI, eroded, erode_kernel);
+        Imgproc.blur(eroded, eroded, new Size(3,3));
+       // Imgproc.adaptiveThreshold(eroded, threshold, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 5, 3);
+        Imgproc.threshold(eroded, threshold, 30, 255, Imgproc.THRESH_BINARY);
+        //Imgproc.morphologyEx(threshold, opening, Imgproc.MORPH_OPEN, opening_kernel);
+        Imgproc.blur(threshold, opening, new Size(3,3));
+
+        // contour detection
+        Core.bitwise_not(opening, opening);
+        Imgproc.findContours(opening, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+        double maxVal = -1;
+        int maxValIdx = -1;
+        for (int i = 0; i < contours.size(); i++) {
+            double contourArea = Imgproc.contourArea(contours.get(i));
+            if (maxVal < contourArea) {
+                maxVal = contourArea;
+                maxValIdx = i;
+            }
+        }
+        finalMat = new Mat();
+        Mat draw;
+        if (maxValIdx != -1) {
+            MatOfPoint maxContour = contours.get(maxValIdx);
+            Moments moments = Imgproc.moments(maxContour);
+            irisCenter.x = moments.get_m10() / moments.get_m00();
+            irisCenter.y = moments.get_m01() / moments.get_m00();
+            //Imgproc.drawContours(draw, contours, maxValIdx, new Scalar(255,255,255), 2);
+            draw = new Mat(ROI.rows(), ROI.cols(), Imgproc.COLOR_BGR2GRAY);
+            draw.setTo(new Scalar(0,0,0));
+            Imgproc.circle(draw, new Point(irisCenter.x,irisCenter.y), 2, new Scalar(255,255,255));
+            draw.convertTo(finalMat, CvType.CV_8UC3);
+        }
+        return irisCenter;
+    }
+
     private Mat crop_eye_ROI(Mat ROI, Rect eye) {
         //eye ROI cropping: removing the eyebrows
         double topCrop = 0.5f;
@@ -285,9 +333,7 @@ public class EyeDetection extends AppCompatActivity {
                 leftEyeROI = crop_eye_ROI(leftFaceROI, leftEyesArray[0]);
             }
             // draw rectangles last
-            if (leftEyesArray.length > 0) {
-               // Imgproc.rectangle(originalImage, add(leftEyesArray[0].tl(), face.tl()), add(leftEyesArray[0].br(), face.tl()), new Scalar(255,0,0), 3);
-            }
+            // Imgproc.rectangle(originalImage, add(leftEyesArray[0].tl(), face.tl()), add(leftEyesArray[0].br(), face.tl()), new Scalar(255,0,0), 3);
             Imgproc.rectangle(originalImage, face.tl(), face.br(), new Scalar(0, 0, 255), 3);
         } else {
             Log.d("EyeDetectionCheck","More than one face detected: " + faceCount);

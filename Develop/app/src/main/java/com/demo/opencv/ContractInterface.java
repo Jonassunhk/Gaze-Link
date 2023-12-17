@@ -3,6 +3,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 
 import org.checkerframework.checker.units.qual.A;
+import org.json.JSONException;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
@@ -26,7 +27,9 @@ public interface ContractInterface {
     interface Presenter {
         void onDestroy(); // method to destroy lifecycle of MainActivity
         void onFrame(Mat rgbMat); // runs every frame
-        void initialize(Context context) throws IOException; // method to initialize presenter/model
+        void initialize(Context context, Context applicationContext) throws IOException, JSONException; // method to initialize presenter/model
         void updateCalibration();
+        boolean presenterBusy = false;
+        void manageTextGeneration(String data);
     }
 }

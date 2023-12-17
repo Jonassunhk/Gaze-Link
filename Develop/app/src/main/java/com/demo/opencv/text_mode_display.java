@@ -34,7 +34,7 @@ public class text_mode_display extends Fragment {
     Runnable updateUI;
     TextView gazeInputLog;
     TextView textInput;
-    TextView[] keyboardOptions = new TextView[6];
+    TextView[] keyboardOptions = new TextView[7];
 
     public text_mode_display() {
         // Required empty public constructor
@@ -60,10 +60,11 @@ public class text_mode_display extends Fragment {
         textInput = mActivity.findViewById(R.id.textInput);
         keyboardOptions[0] = mActivity.findViewById(R.id.keyboardUpText); // 0: up
         keyboardOptions[1] = mActivity.findViewById(R.id.keyboardLeftText); // 1: left
-        keyboardOptions[2] = mActivity.findViewById(R.id.keyboardRightText); // 2: down
-        keyboardOptions[3] = mActivity.findViewById(R.id.keyboardDownText); // 3: right
+        keyboardOptions[2] = mActivity.findViewById(R.id.keyboardRightText); // 2: right
+        keyboardOptions[3] = mActivity.findViewById(R.id.keyboardDownText); // 3: down
         keyboardOptions[4] = mActivity.findViewById(R.id.switchButton); // 4: switch mode button
-        keyboardOptions[5] = mActivity.findViewById(R.id.deleteButton); // 4: switch mode button
+        keyboardOptions[5] = mActivity.findViewById(R.id.deleteButton); // 5: delete button
+        keyboardOptions[6] = mActivity.findViewById(R.id.keyboardClosedText); // 6: close
 
         handler = new Handler(Looper.getMainLooper());
         updateUI = new Runnable(){
@@ -79,7 +80,7 @@ public class text_mode_display extends Fragment {
 
                     KeyboardData keyboardData = item.KeyboardData;
                     if (keyboardData != null) {
-                        for (int i = 0; i < 6; i++) {
+                        for (int i = 0; i < 7; i++) {
                             if (keyboardData.Options.length > i) {
                                 keyboardOptions[i].setText(keyboardData.Options[i]); // display letter labels for keyboard
                             }

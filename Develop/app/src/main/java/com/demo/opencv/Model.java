@@ -14,6 +14,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -42,6 +43,7 @@ public class Model implements ContractInterface.Model {
     String[] rightEyeFileNames = {"right_left", "right_right", "right_straight", "right_up", "right_down", "right_left_up", "right_right_up"};
     public Bitmap[] leftCalibrationData, rightCalibrationData;
     Integer[] tags = new Integer[]{1, 2, 0, 3, 4, 6, 7}; // should be flipped because of perspective
+    Point[] corners = new Point[4]; // left, top, right, down
     double[] leftTemplateError = new double[tempNum];
     double[] rightTemplateError = new double[tempNum];
     @Override
@@ -173,23 +175,44 @@ public class Model implements ContractInterface.Model {
 
         int INF = 100000;
         int maxX = -1, maxY = -1, minX = INF, minY = INF;
+        int maxXIdx = -1, maxYIdx = -1, minXIdx = -1, minYIdx = -1;
 
         for (int i = 0; i < points.size(); i++) {
-            maxX = Math.max(maxX, (int) points.get(i).x);
-            maxY = Math.max(maxY, (int) points.get(i).y);
-            minX = Math.min(minX, (int) points.get(i).x);
-            minY = Math.min(minY, (int) points.get(i).y);
+            if ((int) points.get(i).x > maxX) {
+                maxX = (int) points.get(i).x;
+                maxXIdx = i;
+            }
+            if ((int) points.get(i).y > maxY) {
+                maxY = (int) points.get(i).y;
+                maxYIdx = i;
+            }
+            if ((int) points.get(i).x < minX) {
+                minX = (int) points.get(i).x;
+                minXIdx = i;
+            }
+            if ((int) points.get(i).y < minY) {
+                minY = (int) points.get(i).y;
+                minYIdx = i;
+            }
         }
 
+        // slightly enlarging eye ROI
         maxX += 3;
         maxY += 3;
         minX -= 3;
         minY -= 3;
-//        maxX = (int) points.get(8).x;
-//        maxY = (int) points.get(12).y;
-//        minX = (int) points.get(0).x;
-//        minY = (int) points.get(4).y;
+        // to fix resize issue
+        float yRatio = IMAGE_HEIGHT / (float) (maxY - minY);
+        float xRatio = IMAGE_WIDTH / (float) (maxX - minX);
 
+        // getting all 4 corners of the eye (in relation to the ROI)
+        corners[0] = new Point((maxX - points.get(minXIdx).x) * xRatio, (maxY - points.get(minXIdx).y) * yRatio);
+        corners[1] = new Point((maxX - points.get(minYIdx).x) * xRatio, (maxY - points.get(minYIdx).y) * yRatio);
+        corners[2] = new Point((maxX - points.get(maxXIdx).x) * xRatio, (maxY - points.get(maxXIdx).y) * yRatio);
+        corners[3] = new Point((maxX - points.get(maxYIdx).x) * xRatio, (maxY - points.get(maxYIdx).y) * yRatio);
+
+        Log.d("CornerDetection", corners[0].x + " " + corners[1].x + " " + corners[2].x + " " + corners[3].x);
+        Log.d("CornerDetection", "Max: " + minX + " " + minY + " " + maxX + " " + maxY);
         Rect boundingBox;
         if (minX >= 0 && minY >= 0 && maxX < mat.cols() && maxY < mat.rows() && minX < maxX && minY < maxY) { // contour is valid
             boundingBox = new Rect(new Point(minX, minY), new Point(maxX, maxY));
@@ -213,16 +236,35 @@ public class Model implements ContractInterface.Model {
         }
     }
 
+    private Point normalizeIrisCenter(Point irisCenter) { // get the Normalized iris Center with eye corners and the iris center
+
+        double normalizedX = (irisCenter.x - corners[0].x) / (corners[2].x - corners[0].x); // normalized x coordinate
+        double normalizedY = (irisCenter.y - corners[1].y) / (corners[3].y - corners[1].y); // normalized y coordinate
+
+        return new Point(normalizedX, normalizedY);
+    }
+
+    private Point getIrisCenter(Mat eye) { // getting the normalized iris center (NIC)
+        Point normalized = new Point();
+        if (eye != null) {
+            Point irisCenter = detector.irisDetection(eye);
+            Mat irisMat = detector.finalMat;
+            for (int i = 0; i < 4; i++) { // testing
+                Imgproc.circle(irisMat, corners[i], 2, new Scalar(255,255,255));
+            }
+            normalized = normalizeIrisCenter(irisCenter);
+            detectionOutput.testingMats[1] = irisMat;
+        } else {
+            detectionOutput.testingMats[1] = new Mat();
+        }
+        return normalized;
+    }
+
     @Override
     public DetectionOutput classifyGaze(Mat rgbMat) { @OptIn(markerClass = ExperimentalGetImage.class)
 
-        Mat leftEye = null, rightEye = null;
+        Mat leftEye = null, rightEye;
         Bitmap bmp;
-
-        // opencv detection
-        //Mat grayMat = new Mat();
-        //Imgproc.cvtColor(rgbMat, grayMat, Imgproc.COLOR_RGB2GRAY);
-        //Mat openCVLeft = detector.faceEyeDetection(grayMat); // detect gaze
 
         // google ml kit detection
         Mat rgbaMat = new Mat(rgbMat.cols(), rgbMat.rows(), CvType.CV_8UC4);
@@ -232,7 +274,7 @@ public class Model implements ContractInterface.Model {
         faceDetector.detect(bmp);
 
         // initialization
-        detectionOutput.initialize(2);
+        detectionOutput.initialize(4);
         
         if (faceDetector.leftEyeContour == null && faceDetector.rightEyeContour == null) { // no eye detection
             return detectionOutput;
@@ -280,11 +322,14 @@ public class Model implements ContractInterface.Model {
             }
         }
 
-
         //testing data
         detectionOutput.testingMats[0] = leftEye;
-        detectionOutput.testingMats[1] = rightEye;
+        detectionOutput.testingMats[1] = null;
         analyzeGazeOutput(); // analyze the output before returning to the presenter
+
+        // NIC detection
+        detectionOutput.leftNIC = getIrisCenter(leftEye);
+        Log.d("IrisDetection", "Normalized x = " + detectionOutput.leftNIC.x + ", y = " + detectionOutput.leftNIC.y);
         return detectionOutput;
     }
 
