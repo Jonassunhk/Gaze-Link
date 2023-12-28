@@ -28,7 +28,7 @@ public class AudioManager {
             if (status != TextToSpeech.ERROR) {
                 textToSpeech.setLanguage(Locale.US);
                 Log.d("AudioPlayer", "initialized");
-                textToSpeech.speak("Hello this is my day", TextToSpeech.QUEUE_FLUSH, null, null);
+                //textToSpeech.speak("Thank you for using gaze link.", TextToSpeech.QUEUE_FLUSH, null, null);
             } else {
                 Log.d("AudioPlayer", "Error: " + status);
             }

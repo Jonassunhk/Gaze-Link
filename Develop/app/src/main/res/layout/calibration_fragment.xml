@@ -2,9 +2,10 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/calibrationModeFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#ADF4A4"
+    android:background="@color/columbia_blue"
     tools:context="com.demo.opencv.calibration">
 
     <TextView
@@ -12,15 +13,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="CALIBRATION"
-        android:textColor="#166059"
-        android:textSize="50sp"
+        android:textColor="@color/purple_500"
+        android:textSize="35sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.043"
+        app:layout_constraintHorizontal_bias="0.034"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.066" />
+        app:layout_constraintVertical_bias="0.099" />
 
     <ImageView
         android:id="@+id/calibrationRight"
@@ -109,6 +110,7 @@
         android:id="@+id/calibrationButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="#DF4242"
         android:text="CONTINUE"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -121,6 +123,7 @@
         android:id="@+id/switchEyesButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="#FFFFFF"
         android:text="SWITCH EYES"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

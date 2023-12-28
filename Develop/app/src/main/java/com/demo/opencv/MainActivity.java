@@ -26,6 +26,7 @@ import androidx.camera.core.ImageProxy;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -35,11 +36,13 @@ import org.json.JSONException;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity implements ContractInterface.View, calibration.OnButtonClickListener {
+public class MainActivity extends AppCompatActivity implements ContractInterface.View, calibration.OnButtonClickListener, dev_mode_display.OnSeekBarChangeListener {
 
     // creating object of Presenter interface in Contract
     ContractInterface.Presenter presenter;
@@ -73,7 +76,6 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         }
         viewModel = new ViewModelProvider(this).get(UIViewModel.class);
 
-
         Button devButton, textButton, calibrateButton, clinicianButton;
 
         devButton = findViewById(R.id.devModeButton);
@@ -83,29 +85,54 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
 
         FragmentManager fragmentManager = getSupportFragmentManager();
 
-        clinicianButton.setOnClickListener(v -> fragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainerView, clinician_mode_display.class, null)
-                .setReorderingAllowed(true)
-                .addToBackStack("clinician_fragment") // Name can be null
-                .commit());
+        presenter.setMode("Dev"); // default
+        clinicianButton.setOnClickListener(v -> {
+            if (!Objects.equals(presenter.getMode(), "Clinician")) {
+                presenter.setMode("Clinician");
+                ClinicalData clinicalData = presenter.getClinicalData(); // get clinical data from the presenter
+                Fragment calibrationFragment = clinician_mode_display.newInstance(clinicalData);
+                fragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainerView, calibrationFragment)
+                        .setReorderingAllowed(true)
+                        .addToBackStack("clinician_fragment") // Name can be null
+                        .commit();
+            }
+        });
 
-        devButton.setOnClickListener(v -> fragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainerView, dev_mode_display.class, null)
-                .setReorderingAllowed(true)
-                .addToBackStack("dev_fragment") // Name can be null
-                .commit());
 
-        textButton.setOnClickListener(v -> fragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainerView, text_mode_display.class, null)
-                .setReorderingAllowed(true)
-                .addToBackStack("text_fragment") // Name can be null
-                .commit());
+        devButton.setOnClickListener(v -> {
+            if (!Objects.equals(presenter.getMode(), "Dev")) {
+                presenter.setMode("Dev");
+                fragmentManager.beginTransaction()
+                    .replace(R.id.fragmentContainerView, dev_mode_display.class, null)
+                    .setReorderingAllowed(true)
+                    .addToBackStack("dev_fragment") // Name can be null
+                    .commit();
+                    }
+            }
+        );
 
-        calibrateButton.setOnClickListener(v -> fragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainerView, calibration.class, null)
-                .setReorderingAllowed(true)
-                .addToBackStack("calibrate_fragment") // Name can be null
-                .commit());
+        textButton.setOnClickListener(v -> {
+            if (!Objects.equals(presenter.getMode(), "Text")) {
+                presenter.setMode("Text");
+                fragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainerView, text_mode_display.class, null)
+                        .setReorderingAllowed(true)
+                        .addToBackStack("text_fragment") // Name can be null
+                        .commit();
+            }
+        });
+
+        calibrateButton.setOnClickListener(v -> {
+            if (!Objects.equals(presenter.getMode(), "Calibration")) {
+                presenter.setMode("Calibration");
+                fragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainerView, calibration.class, null)
+                        .setReorderingAllowed(true)
+                        .addToBackStack("calibrate_fragment") // Name can be null
+                        .commit();
+            }
+        });
     }
 
     @Override
@@ -176,13 +203,14 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
             @OptIn(markerClass = ExperimentalGetImage.class)
             public void analyze(@NonNull ImageProxy image) {
 
-                if (presenter.presenterBusy) {
+                if (presenter.getPresenterState()) {
                     image.close();
                 } else {
                     if (image.getFormat() == ImageFormat.YUV_420_888 && image.getPlanes().length == 3) {
                         Log.d("MVPView", "Image Format Correct: Frame Loaded");
                         Image newImage = image.getImage();
                         Mat rgbaMat = Yuv420.rgb(newImage);
+
                         presenter.onFrame(rgbaMat);
                         assert newImage != null;
                         newImage.close();
@@ -216,5 +244,10 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
                 this.finish();
             }
         }
+    }
+
+    @Override
+    public void onSeekBarValueChanged(String valueName, int value) {
+        presenter.onSettingValueChange(valueName, value);
     }
 }

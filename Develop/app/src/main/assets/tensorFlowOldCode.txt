@@ -1,0 +1,52 @@
+
+
+public void loadTensorModel() throws IOException {
+        ByteBuffer model = loadModelFile();
+        Interpreter.Options options = new Interpreter.Options();
+        Interpreter gazeClassifier = new Interpreter(model, options);
+        Log.d("TensorModel", "loaded tensorflow lite model");
+    }
+
+    private ByteBuffer loadModelFile() throws IOException {
+        AssetFileDescriptor fileDescriptor = mContext.getAssets().openFd("gazeClassifierWebb.tflite");
+        FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
+        FileChannel fileChannel = inputStream.getChannel();
+        long startOffset = fileDescriptor.getStartOffset();
+        long declaredLength = fileDescriptor.getDeclaredLength();
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
+    }
+
+        Bitmap dst = Bitmap.createBitmap(tensorMat.width(), tensorMat.height(), Bitmap.Config.ARGB_8888);
+        tensorMat.convertTo(tensorMat,CvType.CV_8UC4);
+        Utils.matToBitmap(tensorMat, dst);
+
+        ByteBuffer buffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.nativeOrder());
+
+        int[] pixels = new int[IMAGE_SIZE*IMAGE_SIZE];
+        dst.getPixels(pixels,0,IMAGE_SIZE,0,0,IMAGE_SIZE,IMAGE_SIZE);
+
+        for (int pixel: pixels) {
+            buffer.putFloat((float) (Color.red(pixel) / 255.0));
+        }
+
+        int bufferSize = 3 * java.lang.Float.SIZE / java.lang.Byte.SIZE;
+        ByteBuffer modelOutput = ByteBuffer.allocateDirect(bufferSize).order(ByteOrder.nativeOrder());
+
+        gazeClassifier.run(buffer, modelOutput);
+
+        modelOutput.rewind();
+        FloatBuffer probabilities = modelOutput.asFloatBuffer();
+
+        float maxProbability = 0;
+        int type = 0;
+        String[] labels = {"left", "straight", "right"};
+
+        for (int i = 0; i < probabilities.capacity(); i++) {
+            float probability = probabilities.get(i);
+            Log.d("TensorModel", "Probability for class " + i + " is " + probability);
+            if (probability > maxProbability) {
+                maxProbability = probability;
+                type = i;
+            }
+        }
+

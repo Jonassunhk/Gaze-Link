@@ -1,12 +1,9 @@
 package com.demo.opencv;
 
-import android.inputmethodservice.Keyboard;
-
-import java.security.Key;
 import java.util.Stack;
 
 public class KeyboardManager {
-    // TODO: set up a tree structure for lower time complexity
+
     static class PageInfo {
         char startLetter; // letter to start
         int[] letters; // letters displayed for each option
@@ -46,19 +43,32 @@ public class KeyboardManager {
     }
 
     void processInput(int selection) { // 0: up, 1: left, 2: down, 3: right
-        PageInfo currentPage = pageStructure[pagePath.peek()];
+        // left gaze = 1, right gaze = 2, up gaze = 0, down gaze = -1, closed = 3, left-up gaze = 4, right-up gaze = 5
+        final int[] keyboardInputMat = {-1, 1, 2, 0, -1, 3, 4, 5}; // convert gaze type into keyboard input
+        int input = keyboardInputMat[selection];
+        if (input == -1) return;
+        switch (input) {
+            case 4 -> { // delete previous input
+                if (textInput.length() > 0) {
+                    textInput = textInput.substring(0, textInput.length() - 1); //
+                }
+            }
+            case 5 -> textInput += ' '; // add space
+            default -> {
+                PageInfo currentPage = pageStructure[pagePath.peek()];
+                if (input >= currentPage.letters.length) { // choice invalid, meaning its going back to prev page
+                    pagePath.pop(); // back to previous page
 
-        if (selection >= currentPage.letters.length) { // choice invalid, meaning its going back to prev page
-            pagePath.pop(); // back to previous page
-
-        } else { // there is a choice, going to next page
-            if (currentPage.letters[selection] == 1) { // only one letter left, final page
-                char finalLetter = (char) (currentPage.startLetter + selection);
-                textInput += finalLetter;
-                pagePath.empty();
-                pagePath.push(0); // reset the stack to store current page
-            } else {
-                pagePath.push(currentPage.nodes[selection]);
+                } else { // there is a choice, going to next page
+                    if (currentPage.letters[input] == 1) { // only one letter left, final page
+                        char finalLetter = (char) (currentPage.startLetter + input);
+                        textInput += finalLetter;
+                        pagePath.empty();
+                        pagePath.push(0); // reset the stack to store current page
+                    } else {
+                        pagePath.push(currentPage.nodes[input]);
+                    }
+                }
             }
         }
     }

@@ -1,0 +1,167 @@
+
+
+private void loadTemplates(Mat[] templates, int index, int id) {
+        Bitmap bm = BitmapFactory.decodeResource(mContext.getResources(), id);
+        templates[index] = new Mat(bm.getWidth(), bm.getHeight(), CvType.CV_8UC4);
+        Utils.bitmapToMat(bm, templates[index]);
+        Imgproc.cvtColor(templates[index], templates[index], Imgproc.COLOR_BGR2GRAY);
+        Imgproc.resize(templates[index], templates[index], new Size(IMAGE_WIDTH,IMAGE_HEIGHT), Imgproc.INTER_AREA);
+    }
+
+public void loadOpenCVModels(int[] files) { // use input output stream to write CascadeClassifier
+
+        leftTemplates = new Mat[tempNum];
+        rightTemplates = new Mat[tempNum];
+
+        tags = new Integer[]{1, 2, 0, 3, 4, 6, 7}; // should be flipped because of perspective
+
+        Resources res = mContext.getResources();
+        for (int code : files) { // loop to initiate the three cascade classifiers
+            try {
+                InputStream inputStream = res.openRawResource(code);
+                File file = new File(mContext.getDir("cascade", MODE_PRIVATE), "haarcascade_frontalface_alt");
+
+                FileOutputStream fileOutputStream = new FileOutputStream(file);
+                byte[] data = new byte[4096];
+                int read_bytes;
+
+                while ((read_bytes = inputStream.read(data)) != -1) {
+                    fileOutputStream.write(data, 0, read_bytes);
+                }
+                if (code == R.raw.haarcascade_frontalface_alt) faceDetector = new CascadeClassifier(file.getAbsolutePath());
+                else if (code == R.raw.haarcascade_lefteye_2splits) eyeDetector = new CascadeClassifier(file.getAbsolutePath());
+
+                inputStream.close();
+                fileOutputStream.close();
+                file.delete();
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        if (!faceDetector.empty() && !eyeDetector.empty()) {
+            Log.d("EyeDetectionCheck", "Cascades loaded successfully");
+        } else {
+            Log.d("EyeDetectionCheck", "Some cascade files empty!!");
+        }
+    }
+
+
+ private Mat crop_eye_ROI(Mat ROI, Rect eye) {
+        //eye ROI cropping: removing the eyebrows
+        double topCrop = 0.5f;
+        double downCrop = 0.2f;
+        double leftCrop = 0.15f;
+        double rightCrop = 0.15f;
+
+        int topAmount = (int) Math.round((float) eye.height * topCrop);
+        int downAmount = (int) Math.round((float) eye.height * downCrop);
+        int leftAmount = (int) Math.round((float) eye.width * leftCrop);
+        int rightAmount = (int) Math.round((float) eye.width * rightCrop);
+
+        Rect newEye = new Rect(
+                new Point(eye.tl().x + leftAmount, eye.tl().y + topAmount),
+                new Point(eye.br().x - rightAmount, eye.br().y - downAmount)
+        );
+
+        Mat dst;
+        dst = new Mat(ROI, newEye);
+        return dst;
+    }
+
+
+private Rect[] eye_detection(Mat ROI) {
+
+        MatOfRect eyesDetected = new MatOfRect();
+        int minEyeSize = Math.round(ROI.rows() * 0.03f); // TODO: adjust
+
+        eyeDetector.detectMultiScale(ROI,
+                eyesDetected,
+                1.1,
+                3,
+                1,
+                new Size(minEyeSize, minEyeSize),
+                new Size()
+        );
+        return eyesDetected.toArray();
+    }
+
+
+    public Mat faceEyeDetection(Mat inputImage) {
+
+        Rect[] facesArray, leftEyesArray, rightEyesArray;
+        squaredROI = new Mat();
+
+        if (faceDetector == null || eyeDetector == null) {
+            Log.d("EyeDetectionCheck", "Waiting for Cascade to load");
+            return null;
+        }
+
+        //Noise Reduction
+        originalImage = new Mat(inputImage.rows(), inputImage.cols(), inputImage.type());
+        Imgproc.GaussianBlur(inputImage, originalImage, new Size(3,3),0);
+
+        Log.d("EyeDetectionCheck", "Through");
+        MatOfRect facesDetected = new MatOfRect();
+        int minFaceSize = Math.round(originalImage.rows() * 0.1f); // 0.1f for face, check later to see which one is best
+        faceDetector.detectMultiScale(originalImage,
+                facesDetected,
+                1.1,
+                3,
+                0,
+                new Size(minFaceSize, minFaceSize),
+                new Size()
+        );
+
+        facesArray = facesDetected.toArray();
+        int faceCount = facesArray.length;
+
+        if (faceCount < 1) {
+            Log.d("EyeDetectionCheck","No faces detected...");
+        } else if (faceCount == 1) {
+            Log.d("EyeDetectionCheck","One face detected, proceeding...");
+            Rect face = facesArray[0];
+            faceROI = new Mat(originalImage, face); // roi with only the face
+
+            //split face into half and detect eyes separately
+            Rect right = new Rect(0,0,faceROI.cols()/2, faceROI.rows());
+            Rect left = new Rect(faceROI.cols()/2, 0, faceROI.cols()/2, faceROI.rows());
+            rightFaceROI = new Mat(faceROI, right);
+            leftFaceROI = new Mat(faceROI, left);
+
+            // detect right eye
+            rightEyesArray = eye_detection(rightFaceROI);
+            if (rightEyesArray.length == 1) {
+                Log.d("EyeDetectionCheck","right side eye detected");
+                rightEyeROI = crop_eye_ROI(rightFaceROI, rightEyesArray[0]);
+            }
+            // detect left eye
+            leftEyesArray = eye_detection(leftFaceROI);
+            if (leftEyesArray.length == 1) {
+                Log.d("EyeDetectionCheck","left side eye detected");
+                leftEyeROI = crop_eye_ROI(leftFaceROI, leftEyesArray[0]);
+            }
+            // draw rectangles last
+            // Imgproc.rectangle(originalImage, add(leftEyesArray[0].tl(), face.tl()), add(leftEyesArray[0].br(), face.tl()), new Scalar(255,0,0), 3);
+            Imgproc.rectangle(originalImage, face.tl(), face.br(), new Scalar(0, 0, 255), 3);
+        } else {
+            Log.d("EyeDetectionCheck","More than one face detected: " + faceCount);
+        }
+        return leftEyeROI;
+    }
+}
+
+    private Rect getSurroundBox(PointF point, Mat mat) {
+        Rect boundingBox;
+        int minX = (int) point.x - IMAGE_WIDTH / 2;
+        int maxX = (int) point.x + IMAGE_WIDTH / 2;
+        int minY = (int) point.y - IMAGE_HEIGHT / 2;
+        int maxY = (int) point.y + IMAGE_HEIGHT / 2;
+        if (minX >= 0 && minY >= 0 && maxX < mat.cols() && maxY < mat.rows() && minX < maxX && minY < maxY) { // contour is valid
+            boundingBox = new Rect(new Point(minX, minY), new Point(maxX, maxY));
+            return boundingBox;
+        } else {
+            return null;
+        }
+    }

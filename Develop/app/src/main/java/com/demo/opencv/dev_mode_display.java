@@ -1,11 +1,11 @@
 package com.demo.opencv;
 
-import static org.opencv.android.Utils.matToBitmap;
-
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -16,25 +16,37 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link dev_mode_display#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class dev_mode_display extends Fragment {
     private UIViewModel viewModel;
     Activity mActivity;
     ImageView[] images = new ImageView[4];
-    TextView[] texts = new TextView[8];
+    TextView[] texts = new TextView[7];
     Handler handler;
     Runnable updateUI;
     public dev_mode_display() {
         // Required empty public constructor
+    }
+
+    public interface OnSeekBarChangeListener {
+        void onSeekBarValueChanged(String valueName, int value);
+    }
+    private OnSeekBarChangeListener callback;
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        // Ensure that the container activity has implemented the callback interface
+        try {
+            callback = (OnSeekBarChangeListener) context;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(context + " must implement OnSeekBarChangeListener");
+        }
     }
 
     private Bitmap matToBitmap(Mat mat) {
@@ -42,18 +54,13 @@ public class dev_mode_display extends Fragment {
         Utils.matToBitmap(mat,bm);
         return bm;
     }
-    public static dev_mode_display newInstance(String param1, String param2) {
-        dev_mode_display fragment = new dev_mode_display();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
-        return fragment;
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mActivity = requireActivity();
         viewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
+
     }
 
     @Override
@@ -63,7 +70,7 @@ public class dev_mode_display extends Fragment {
     }
 
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
 
         // different image templates on the dev mode display
         images[0] = mActivity.findViewById(R.id.imageView1);
@@ -75,7 +82,44 @@ public class dev_mode_display extends Fragment {
         texts[4] = mActivity.findViewById(R.id.textView5);
         texts[5] = mActivity.findViewById(R.id.textView6);
         texts[6] = mActivity.findViewById(R.id.textView7);
-        texts[7] = mActivity.findViewById(R.id.textView8);
+
+        SeekBar lightingSeekBar = mActivity.findViewById(R.id.seekBar);
+        SeekBar sensitivitySeekBar = mActivity.findViewById(R.id.seekBar2);
+        SeekBar textEntryModeSeekBar = mActivity.findViewById(R.id.seekBar3);
+
+        SeekBar.OnSeekBarChangeListener listener = new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    if (seekBar == lightingSeekBar) {
+                        String text = "Iris Lighting Threshold: " + progress;
+                        texts[4].setText(text);
+                        callback.onSeekBarValueChanged("Threshold", progress);
+                    } else if (seekBar == sensitivitySeekBar) {
+                        String text = "Gaze Sensitivity: " + progress;
+                        texts[5].setText(text);
+                        callback.onSeekBarValueChanged("Sensitivity", progress);
+                    } else if (seekBar == textEntryModeSeekBar) {
+                        String label = "";
+                        if (progress == 0) {label = "letter-by-letter"; }
+                        else if (progress == 1) {label = "ambiguous keyboard only";}
+                        else if (progress == 2) {label = "ambiguous keyboard + LLM";}
+                        String text = "Current text-entry mode: " + label;
+                        texts[6].setText(text);
+                        callback.onSeekBarValueChanged("TextEntryMode", progress);
+                    }
+                }
+            }
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        };
+
+        lightingSeekBar.setOnSeekBarChangeListener(listener);
+        sensitivitySeekBar.setOnSeekBarChangeListener(listener);
+        textEntryModeSeekBar.setOnSeekBarChangeListener(listener);
+
 
         handler = new Handler(Looper.getMainLooper());
         updateUI = new Runnable(){
@@ -87,12 +131,15 @@ public class dev_mode_display extends Fragment {
                     if (detection == null) {
                         return;
                     }
-                    for (int i = 0; i < 2; i++) {
-                        // check if the testing mats are empty
-                        if (detection.testingMats[i] != null && detection.testingMats[i].width() > 0 && detection.testingMats[i].height() > 0) {
-                            images[i].setImageBitmap(matToBitmap(detection.testingMats[i]));
-                        }
+                    // set testing mat 1:
+                    if (detection.testingMats[0] != null && detection.testingMats[0].width() > 0 && detection.testingMats[0].height() > 0) {
+                        images[0].setImageBitmap(matToBitmap(detection.testingMats[0]));
                     }
+
+                    if (detection.testingMats[2] != null && detection.testingMats[2].width() > 0 && detection.testingMats[2].height() > 0) {
+                        images[1].setImageBitmap(matToBitmap(detection.testingMats[2]));
+                    }
+
                     if (detection.AnalyzedData != null) {
                         String s = "Overall Gaze Type: " + detection.AnalyzedData.getTypeString(detection.AnalyzedData.GazeType);
                         texts[1].setText(s);
@@ -100,14 +147,9 @@ public class dev_mode_display extends Fragment {
                         s = "Overall Loss: " + String.format("%.2f", detection.AnalyzedData.GazeProbability);
                         texts[2].setText(s);
 
-                        s = "Left Gaze Type: " + detection.LeftData.getTypeString(detection.LeftData.GazeType);
-                        texts[4].setText(s);
-
-                        s = "Right Gaze Type: " + detection.RightData.getTypeString(detection.RightData.GazeType);
-                        texts[5].setText(s);
-
                         if (detection.AnalyzedData.Success) { // check if the final output is successful
-                            texts[0].setText("GAZE DETECTED");
+                            String text = "GAZE DETECTED";
+                            texts[0].setText(text);
                         } else {
                             texts[0].setText("---------------");
                         }
@@ -123,6 +165,7 @@ public class dev_mode_display extends Fragment {
         // Inflate the layout for this fragment
         Log.d("devModeDisplay", "View Created");
         View newView = inflater.inflate(R.layout.dev_mode_fragment, container, false);
+
         return newView;
     }
 }

@@ -32,8 +32,7 @@ public class text_mode_display extends Fragment {
     Activity mActivity;
     Handler handler;
     Runnable updateUI;
-    TextView gazeInputLog;
-    TextView textInput;
+    TextView gazeInputLog, textInput, contextBox;
     TextView[] keyboardOptions = new TextView[7];
 
     public text_mode_display() {
@@ -58,13 +57,14 @@ public class text_mode_display extends Fragment {
 
         gazeInputLog = mActivity.findViewById(R.id.gazeInputLog);
         textInput = mActivity.findViewById(R.id.textInput);
-        keyboardOptions[0] = mActivity.findViewById(R.id.keyboardUpText); // 0: up
-        keyboardOptions[1] = mActivity.findViewById(R.id.keyboardLeftText); // 1: left
-        keyboardOptions[2] = mActivity.findViewById(R.id.keyboardRightText); // 2: right
-        keyboardOptions[3] = mActivity.findViewById(R.id.keyboardDownText); // 3: down
-        keyboardOptions[4] = mActivity.findViewById(R.id.switchButton); // 4: switch mode button
-        keyboardOptions[5] = mActivity.findViewById(R.id.deleteButton); // 5: delete button
-        keyboardOptions[6] = mActivity.findViewById(R.id.keyboardClosedText); // 6: close
+        contextBox = mActivity.findViewById(R.id.contextBox);
+        keyboardOptions[0] = mActivity.findViewById(R.id.upGazeText); // 0: up
+        keyboardOptions[1] = mActivity.findViewById(R.id.leftGazeText); // 1: left
+        keyboardOptions[2] = mActivity.findViewById(R.id.rightGazeText); // 2: right
+        keyboardOptions[3] = mActivity.findViewById(R.id.closedGazeText); // 3: closed gaze
+        keyboardOptions[4] = mActivity.findViewById(R.id.rightUpGazeText); // 4: switch mode button
+        keyboardOptions[5] = mActivity.findViewById(R.id.leftUpGazeText); // 5: delete button
+        keyboardOptions[6] = mActivity.findViewById(R.id.textModeTitle); // 6: title
 
         handler = new Handler(Looper.getMainLooper());
         updateUI = new Runnable(){
@@ -75,7 +75,7 @@ public class text_mode_display extends Fragment {
                     if (detection.prevInputs != null) {
                         String listString = String.join(", ", detection.prevInputs);
                         Log.d("quickModeDisplay", listString + " " + detection.prevInputs.size());
-                        gazeInputLog.setText(listString);
+                        gazeInputLog.setText("Gaze input log: " + listString);
                     }
 
                     KeyboardData keyboardData = item.KeyboardData;
@@ -85,6 +85,7 @@ public class text_mode_display extends Fragment {
                                 keyboardOptions[i].setText(keyboardData.Options[i]); // display letter labels for keyboard
                             }
                         }
+                        contextBox.setText("Context: " + keyboardData.context);
                         textInput.setText("Current Text: " + keyboardData.TextInput);
                     }
                 });

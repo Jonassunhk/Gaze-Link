@@ -2,7 +2,6 @@ package com.demo.opencv;
 import android.content.Context;
 import android.graphics.Bitmap;
 
-import org.checkerframework.checker.units.qual.A;
 import org.json.JSONException;
 import org.opencv.core.Mat;
 
@@ -22,6 +21,7 @@ public interface ContractInterface {
         DetectionOutput classifyGaze(Mat rgbMat); // determine gaze code with output
         Bitmap[] getLeftCalibrationData();
         Bitmap[] getRightCalibrationData();
+        void onSettingValueChange(String valueName, int value);
     }
 
     interface Presenter {
@@ -29,7 +29,10 @@ public interface ContractInterface {
         void onFrame(Mat rgbMat); // runs every frame
         void initialize(Context context, Context applicationContext) throws IOException, JSONException; // method to initialize presenter/model
         void updateCalibration();
-        boolean presenterBusy = false;
-        void manageTextGeneration(String data);
+        boolean getPresenterState();
+        ClinicalData getClinicalData();
+        void setMode(String value);
+        String getMode();
+        void onSettingValueChange(String valueName, int value);
     }
 }

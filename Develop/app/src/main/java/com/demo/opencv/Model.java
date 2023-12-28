@@ -6,6 +6,7 @@ import android.graphics.PointF;
 import android.util.Log;
 
 import androidx.annotation.OptIn;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.ExperimentalGetImage;
 
 import org.opencv.android.OpenCVLoader;
@@ -26,7 +27,7 @@ import java.util.Objects;
 import java.util.Queue;
 
 
-public class Model implements ContractInterface.Model {
+public class Model extends AppCompatActivity implements ContractInterface.Model {
     private final EyeDetection detector = new EyeDetection(); // create eye detection object to analyze user input
     private final GoogleFaceDetector faceDetector = new GoogleFaceDetector();
     DetectionOutput detectionOutput = new DetectionOutput();
@@ -34,9 +35,11 @@ public class Model implements ContractInterface.Model {
     private ArrayList<String> prevInputs;
     private Queue<Integer> window;
     int gazeNum = 8; // number of types of gaze inputs
-    int tempNum = 7;
-    int templateNum = 8;
-    int templateSuccessRate = 7;
+    int tempNum = 7; // number of gazes
+    int currentGaze = -1;
+    int length = 0;
+    int dwellWindowSize = 6; // number of frames to determine a gesture input
+    int templateSuccessRate = dwellWindowSize - 2; // number of frames to confirm gesture input
     int[] gazeCount;
     static int IMAGE_WIDTH = 44, IMAGE_HEIGHT = 18;
     String[] leftEyeFileNames = {"left_left", "left_right", "left_straight", "left_up", "left_down", "left_left_up", "left_right_up"};
@@ -46,6 +49,7 @@ public class Model implements ContractInterface.Model {
     Point[] corners = new Point[4]; // left, top, right, down
     double[] leftTemplateError = new double[tempNum];
     double[] rightTemplateError = new double[tempNum];
+
     @Override
     public void initialize(Context context) throws IOException { // initialize models, libraries, and datastore
 
@@ -58,10 +62,7 @@ public class Model implements ContractInterface.Model {
         prevInputs = new ArrayList<>();
         window = new LinkedList<>();
         gazeCount = new int[gazeNum]; // change based on how many detections there are
-        int[] files = {R.raw.haarcascade_frontalface_alt, R.raw.haarcascade_lefteye_2splits};
 
-        detector.loadTensorModel(); // load TensorFlow Lite Model
-        detector.loadOpenCVModels(files); // load OpenCV Cascade Models
         faceDetector.initialize(); // initialize Google ML Kit
         userDataManager.initialize(context); // initialize settings
 
@@ -72,9 +73,9 @@ public class Model implements ContractInterface.Model {
         if (leftCalibrationData == null || rightCalibrationData == null) {
             Log.d("Calibration", "calibration incomplete");
         } else {
+            Log.d("Calibration", "calibration data found, complete");
             detector.loadCalibratedTemplates(true, leftCalibrationData);
             detector.loadCalibratedTemplates(false, rightCalibrationData);
-            Log.d("Calibration", "calibration data found, complete");
         }
     }
 
@@ -88,6 +89,7 @@ public class Model implements ContractInterface.Model {
 
     @Override
     public void setCalibrationTemplates(Context context, Bitmap[] leftEye, Bitmap[] rightEye) { // import calibration images
+        Log.d("Calibration", "Setting calibration templates");
         leftCalibrationData = leftEye;
         rightCalibrationData = rightEye;
         userDataManager.storeCalibrationFiles(context, leftEyeFileNames, leftEye); // data store
@@ -141,34 +143,49 @@ public class Model implements ContractInterface.Model {
         detectionOutput.gestureOutput = 0;
         if (detectionOutput.AnalyzedData.Success) { // add the analyzed data into queue
             int type = detectionOutput.AnalyzedData.GazeType;
-            window.add(type);
-            gazeCount[type] += 1;
-        }
-        if (window.size() == templateNum) { // enough frames to determine input
-            int index = 0, max = -1;
-            for (int i = 0; i < gazeCount.length; i++) { // get max in array
-                if (gazeCount[i] > max) {
-                    max = gazeCount[i];
-                    index = i;
+            if (type == currentGaze) {
+                length += 1;
+                if (length == 3) { // detected
+                    String gazeType = detectionOutput.AnalyzedData.getTypeString(currentGaze);
+                    if (prevInputs.size() > 5) {
+                        prevInputs.clear();
+                    }
+                    prevInputs.add(gazeType);
+                    detectionOutput.prevInputs = prevInputs;
+                    detectionOutput.gestureOutput = type;
                 }
-            }
-            //Log.d("MVPModel", Arrays.toString(gazeCount));
-            String gazeType = detectionOutput.AnalyzedData.getTypeString(index);
-            if (max >= templateSuccessRate && !Objects.equals(gazeType, "Straight")) { // more than half of the inputs, not straight, counts
-                if (prevInputs.size() > 20) {
-                    prevInputs.clear();
-                }
-                prevInputs.add(gazeType);
-                detectionOutput.prevInputs = prevInputs;
-                detectionOutput.gestureOutput = index;
-
-                window.clear(); // clear window after input detected
-                gazeCount = new int[gazeNum];
             } else {
-                int lastIndex = window.poll(); // get the last element out
-                gazeCount[lastIndex] -= 1; // decrease number
+                currentGaze = type;
+                length = 0;
             }
+            //window.add(type);
+           // gazeCount[type] += 1;
         }
+//        if (window.size() == dwellWindowSize) { // enough frames to determine input
+//            int index = 0, max = -1;
+//            for (int i = 0; i < gazeCount.length; i++) { // get max in array
+//                if (gazeCount[i] > max) {
+//                    max = gazeCount[i];
+//                    index = i;
+//                }
+//            }
+//            //Log.d("MVPModel", Arrays.toString(gazeCount));
+//            String gazeType = detectionOutput.AnalyzedData.getTypeString(index);
+//            if (max >= templateSuccessRate && !Objects.equals(gazeType, "Straight")) { // more than half of the inputs, not straight, counts
+//                if (prevInputs.size() > 5) {
+//                    prevInputs.clear();
+//                }
+//                prevInputs.add(gazeType);
+//                detectionOutput.prevInputs = prevInputs;
+//                detectionOutput.gestureOutput = index;
+//
+//                window.clear(); // clear window after input detected
+//                gazeCount = new int[gazeNum];
+//            } else {
+//                int lastIndex = window.poll(); // get the last element out
+//                gazeCount[lastIndex] -= 1; // decrease number
+//            }
+//        }
     }
 
     private Rect getBoundingBox(List<PointF> points, Mat mat) {
@@ -205,6 +222,10 @@ public class Model implements ContractInterface.Model {
         float yRatio = IMAGE_HEIGHT / (float) (maxY - minY);
         float xRatio = IMAGE_WIDTH / (float) (maxX - minX);
 
+        if (maxXIdx == -1 || maxYIdx == -1 || minXIdx == -1 || minYIdx == -1) {
+            return null;
+        }
+
         // getting all 4 corners of the eye (in relation to the ROI)
         corners[0] = new Point((maxX - points.get(minXIdx).x) * xRatio, (maxY - points.get(minXIdx).y) * yRatio);
         corners[1] = new Point((maxX - points.get(minYIdx).x) * xRatio, (maxY - points.get(minYIdx).y) * yRatio);
@@ -214,20 +235,6 @@ public class Model implements ContractInterface.Model {
         Log.d("CornerDetection", corners[0].x + " " + corners[1].x + " " + corners[2].x + " " + corners[3].x);
         Log.d("CornerDetection", "Max: " + minX + " " + minY + " " + maxX + " " + maxY);
         Rect boundingBox;
-        if (minX >= 0 && minY >= 0 && maxX < mat.cols() && maxY < mat.rows() && minX < maxX && minY < maxY) { // contour is valid
-            boundingBox = new Rect(new Point(minX, minY), new Point(maxX, maxY));
-            return boundingBox;
-        } else {
-            return null;
-        }
-    }
-
-    private Rect getSurroundBox(PointF point, Mat mat) {
-        Rect boundingBox;
-        int minX = (int) point.x - IMAGE_WIDTH / 2;
-        int maxX = (int) point.x + IMAGE_WIDTH / 2;
-        int minY = (int) point.y - IMAGE_HEIGHT / 2;
-        int maxY = (int) point.y + IMAGE_HEIGHT / 2;
         if (minX >= 0 && minY >= 0 && maxX < mat.cols() && maxY < mat.rows() && minX < maxX && minY < maxY) { // contour is valid
             boundingBox = new Rect(new Point(minX, minY), new Point(maxX, maxY));
             return boundingBox;
@@ -253,9 +260,9 @@ public class Model implements ContractInterface.Model {
                 Imgproc.circle(irisMat, corners[i], 2, new Scalar(255,255,255));
             }
             normalized = normalizeIrisCenter(irisCenter);
-            detectionOutput.testingMats[1] = irisMat;
+            detectionOutput.testingMats[2] = detector.opening;
         } else {
-            detectionOutput.testingMats[1] = new Mat();
+            detectionOutput.testingMats[2] = new Mat();
         }
         return normalized;
     }
@@ -263,7 +270,7 @@ public class Model implements ContractInterface.Model {
     @Override
     public DetectionOutput classifyGaze(Mat rgbMat) { @OptIn(markerClass = ExperimentalGetImage.class)
 
-        Mat leftEye = null, rightEye;
+        Mat leftEye = null, rightEye = null;
         Bitmap bmp;
 
         // google ml kit detection
@@ -293,9 +300,11 @@ public class Model implements ContractInterface.Model {
                   //  Log.d("MVPModel", "Rect Dimensions: " + leftEyeBound.x + ' ' + leftEyeBound.y + ' ' + leftEyeBound.height + ' ' + leftEyeBound.width);
                     leftEye = new Mat(rgbMat, leftEyeBound);
                     Log.d("MVPModel", "Image Dimensions: " + leftEye.cols() + " " + leftEye.rows());
+
+                    // image processing
                     Imgproc.resize(leftEye, leftEye, new Size(IMAGE_WIDTH, IMAGE_HEIGHT), Imgproc.INTER_LINEAR);
                     Imgproc.cvtColor(leftEye, leftEye, Imgproc.COLOR_RGB2GRAY);
-                    //Imgproc.blur(leftEye, leftEye, new Size(3,3));
+                    //Imgproc.equalizeHist(leftEye, leftEye);
 
                     if (leftCalibrationData != null) { // if there are calibration images
                         leftTemplateError = detector.runEyeModel(detectionOutput, leftEye, 0);
@@ -311,9 +320,11 @@ public class Model implements ContractInterface.Model {
                 if (rightEyeBound != null) {
                   //  Log.d("MVPModel", "Rect Dimensions: " + rightEyeBound.x + ' ' + rightEyeBound.y + ' ' + rightEyeBound.height + ' ' + rightEyeBound.width);
                     rightEye = new Mat(rgbMat, rightEyeBound);
+
+                    // image processing
                     Imgproc.resize(rightEye, rightEye, new Size(IMAGE_WIDTH, IMAGE_HEIGHT), Imgproc.INTER_LINEAR);
                     Imgproc.cvtColor(rightEye, rightEye, Imgproc.COLOR_RGB2GRAY);
-                    //Imgproc.blur(rightEye, rightEye, new Size(3,3));
+                    //Imgproc.equalizeHist(rightEye, rightEye);
 
                     if (rightCalibrationData != null) { // if there are calibration images
                         rightTemplateError = detector.runEyeModel(detectionOutput, rightEye, 1);
@@ -324,7 +335,7 @@ public class Model implements ContractInterface.Model {
 
         //testing data
         detectionOutput.testingMats[0] = leftEye;
-        detectionOutput.testingMats[1] = null;
+        detectionOutput.testingMats[1] = rightEye;
         analyzeGazeOutput(); // analyze the output before returning to the presenter
 
         // NIC detection
@@ -341,5 +352,14 @@ public class Model implements ContractInterface.Model {
     @Override
     public Bitmap[] getRightCalibrationData() {
         return rightCalibrationData;
+    }
+
+    @Override
+    public void onSettingValueChange(String valueName, int value) {
+        if (Objects.equals(valueName, "Threshold")) {
+            detector.thresholdValue = value;
+        } else if (Objects.equals(valueName, "Sensitivity")) {
+            detector.sensitivity = (float) value / 1000;
+        }
     }
 }

@@ -6,7 +6,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#B6B2CC"
+    android:background="@color/columbia_blue"
     android:orientation="vertical"
     tools:context="com.demo.opencv.MainActivity">
 
@@ -24,7 +24,10 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="#A56C6C"
-            android:text="CLINICIAN MODE" />
+            android:fontFamily="sans-serif-medium"
+            android:text="CLINICIAN MODE"
+            android:textStyle="bold"
+            android:typeface="normal" />
 
         <Button
             android:id="@+id/textModeButton"
@@ -33,7 +36,10 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="#A56C6C"
-            android:text="Text-entry Mode" />
+            android:fontFamily="sans-serif-medium"
+            android:text="Text-entry Mode"
+            android:textStyle="bold"
+            android:typeface="normal" />
 
         <Button
             android:id="@+id/devModeButton"
@@ -42,7 +48,10 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="#A56C6C"
-            android:text="Dev Mode" />
+            android:fontFamily="sans-serif-medium"
+            android:text="SETTING MODE"
+            android:textStyle="bold"
+            android:typeface="normal" />
 
         <Button
             android:id="@+id/calibrateButton"
@@ -51,7 +60,10 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="#A56C6C"
-            android:text="Calibrate" />
+            android:fontFamily="sans-serif-medium"
+            android:text="Calibrate"
+            android:textStyle="bold"
+            android:typeface="normal" />
     </LinearLayout>
 
     <LinearLayout

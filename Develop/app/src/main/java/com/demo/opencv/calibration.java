@@ -98,15 +98,17 @@ public class calibration extends Fragment {
                         images = item.rightTemplates;
                     }
 
-                    for (int i = 0; i < 7; i++) {
-                        if (images[i] != null) {
-                            leftTemplateViews[i].setImageBitmap(images[i]);
-                        } else if (detection.testingMats[0] != null) {
-                            leftTemplateViews[i].setImageBitmap(matToBitmap(detection.testingMats[0]));
+                    if (images != null) {
+                        for (int i = 0; i < 7; i++) {
+                            if (images[i] != null) {
+                                leftTemplateViews[i].setImageBitmap(images[i]);
+                            } else if (detection.testingMats[0] != null) {
+                                leftTemplateViews[i].setImageBitmap(matToBitmap(detection.testingMats[0]));
+                            }
                         }
-                    }
-                    if (item.calibrationInstruction != null) {
-                        instruction.setText(item.calibrationInstruction);
+                        if (item.calibrationInstruction != null) {
+                            instruction.setText(item.calibrationInstruction);
+                        }
                     }
                 });
             }

@@ -2,7 +2,6 @@ package com.demo.opencv;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -51,17 +50,6 @@ public class openAIManager extends AppCompatActivity {
        // speech = createTempFile(mContext, "textToSpeech", ".mp3");
     }
 
-//    public File createTempFile(Context context, String fileName, String fileExtension) {
-//        File tempFile;
-//        try {
-//            File cacheDir = context.getCacheDir();
-//            tempFile = File.createTempFile(fileName, fileExtension, cacheDir);
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//        return tempFile;
-//    }
-
     private void sendMessage(String data) {
         Log.d("TextGeneration", "Broadcasting Message");
         Intent intent = new Intent("textGenerationEvent");
@@ -91,7 +79,7 @@ public class openAIManager extends AppCompatActivity {
         return speech[0];
     }
 
-    public void generateText(String prompt) {
+    public void generateText(String tag, String prompt) { // TODO: add tag to keep track of the usage
 
         // Prepare the request body
         Message messageStructure = new Message("user", prompt);
@@ -103,7 +91,7 @@ public class openAIManager extends AppCompatActivity {
             public void onResponse(@NonNull Call<TextGenerationOutput> call, @NonNull Response<TextGenerationOutput> response) {
                 if (response.isSuccessful()) {
                     if (response.body() != null && response.body().choices().size() != 0) {
-                        String output = response.body().choices().get(0).message.content;
+                        String output = tag + "-" + response.body().choices().get(0).message.content;
                         sendMessage(output);
                         Log.d("TextGeneration", output);
                     } else {
