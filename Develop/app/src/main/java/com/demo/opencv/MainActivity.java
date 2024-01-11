@@ -36,13 +36,14 @@ import org.json.JSONException;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity implements ContractInterface.View, calibration.OnButtonClickListener, dev_mode_display.OnSeekBarChangeListener {
+public class MainActivity extends AppCompatActivity implements ContractInterface.View,
+        calibration.OnButtonClickListener, dev_mode_display.devModeListener, text_mode_display.TextModeListener {
 
     // creating object of Presenter interface in Contract
     ContractInterface.Presenter presenter;
@@ -52,12 +53,11 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
     private final ExecutorService cameraExecutor = Executors.newSingleThreadExecutor();
     private UIViewModel viewModel;
     Handler mainHandler = new Handler(Looper.getMainLooper());
-
+    HashMap<String, String> settings = new HashMap<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         // instantiating object of Presenter Interface
         presenter = new Presenter(this, new Model());
 
@@ -66,6 +66,8 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         } catch (IOException | JSONException e) {
             throw new RuntimeException(e);
         }
+        settings = presenter.getSettings();
+        Log.d("MVPView", "Threshold setting = " + settings.get("Threshold"));
         //cameraXSetup.initializeCameraX(); // initialize cameraX (raw user input)
         Log.d("MVPView", "CameraX and Presenter initialized");
 
@@ -86,6 +88,13 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         FragmentManager fragmentManager = getSupportFragmentManager();
 
         presenter.setMode("Dev"); // default
+        Fragment newFragment = dev_mode_display.newInstance(settings);
+        fragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainerView, newFragment)
+                .setReorderingAllowed(true)
+                .addToBackStack("dev_fragment") // Name can be null
+                .commit();
+
         clinicianButton.setOnClickListener(v -> {
             if (!Objects.equals(presenter.getMode(), "Clinician")) {
                 presenter.setMode("Clinician");
@@ -99,24 +108,25 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
             }
         });
 
-
         devButton.setOnClickListener(v -> {
-            if (!Objects.equals(presenter.getMode(), "Dev")) {
-                presenter.setMode("Dev");
-                fragmentManager.beginTransaction()
-                    .replace(R.id.fragmentContainerView, dev_mode_display.class, null)
-                    .setReorderingAllowed(true)
-                    .addToBackStack("dev_fragment") // Name can be null
-                    .commit();
-                    }
+                if (!Objects.equals(presenter.getMode(), "Dev")) {
+                    presenter.setMode("Dev");
+                    Fragment devFragment = dev_mode_display.newInstance(settings);
+                    fragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainerView, devFragment)
+                        .setReorderingAllowed(true)
+                        .addToBackStack("dev_fragment") // Name can be null
+                        .commit();
+                }
             }
         );
 
         textButton.setOnClickListener(v -> {
             if (!Objects.equals(presenter.getMode(), "Text")) {
                 presenter.setMode("Text");
+                Fragment textFragment = text_mode_display.newInstance(settings.get("Context"));
                 fragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainerView, text_mode_display.class, null)
+                        .replace(R.id.fragmentContainerView, textFragment)
                         .setReorderingAllowed(true)
                         .addToBackStack("text_fragment") // Name can be null
                         .commit();
@@ -248,6 +258,15 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
 
     @Override
     public void onSeekBarValueChanged(String valueName, int value) {
-        presenter.onSettingValueChange(valueName, value);
+        settings.put(valueName, String.valueOf(value));
+        presenter.onSettingValueChange(valueName, String.valueOf(value));
+    }
+
+    @Override
+    public void onSettingValueChanged(String valueName, String value) {
+        Log.d("TextGeneration", "Context Changed to: " + value);
+        settings.put(valueName, value);
+        presenter.onSettingValueChange(valueName, String.valueOf(value));
+
     }
 }

@@ -6,6 +6,7 @@ import org.json.JSONException;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 public interface ContractInterface {
     interface View {
@@ -21,7 +22,8 @@ public interface ContractInterface {
         DetectionOutput classifyGaze(Mat rgbMat); // determine gaze code with output
         Bitmap[] getLeftCalibrationData();
         Bitmap[] getRightCalibrationData();
-        void onSettingValueChange(String valueName, int value);
+        void onSettingValueChange(String valueName, String value);
+        HashMap<String, String> getSettings();
     }
 
     interface Presenter {
@@ -33,6 +35,7 @@ public interface ContractInterface {
         ClinicalData getClinicalData();
         void setMode(String value);
         String getMode();
-        void onSettingValueChange(String valueName, int value);
+        void onSettingValueChange(String valueName, String value);
+        HashMap<String, String> getSettings();
     }
 }

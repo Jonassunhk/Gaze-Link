@@ -21,10 +21,9 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 
 
 public class Model extends AppCompatActivity implements ContractInterface.Model {
@@ -33,13 +32,10 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
     DetectionOutput detectionOutput = new DetectionOutput();
     UserDataManager userDataManager = new UserDataManager();
     private ArrayList<String> prevInputs;
-    private Queue<Integer> window;
     int gazeNum = 8; // number of types of gaze inputs
     int tempNum = 7; // number of gazes
     int currentGaze = -1;
     int length = 0;
-    int dwellWindowSize = 6; // number of frames to determine a gesture input
-    int templateSuccessRate = dwellWindowSize - 2; // number of frames to confirm gesture input
     int[] gazeCount;
     static int IMAGE_WIDTH = 44, IMAGE_HEIGHT = 18;
     String[] leftEyeFileNames = {"left_left", "left_right", "left_straight", "left_up", "left_down", "left_left_up", "left_right_up"};
@@ -49,6 +45,8 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
     Point[] corners = new Point[4]; // left, top, right, down
     double[] leftTemplateError = new double[tempNum];
     double[] rightTemplateError = new double[tempNum];
+    public HashMap<String, String> settings = new HashMap<>();
+    String[] storedSettingNames = {"Threshold", "Sensitivity", "TextEntryMode"};
 
     @Override
     public void initialize(Context context) throws IOException { // initialize models, libraries, and datastore
@@ -60,13 +58,13 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
         }
         detector.mContext = context;
         prevInputs = new ArrayList<>();
-        window = new LinkedList<>();
         gazeCount = new int[gazeNum]; // change based on how many detections there are
 
         faceDetector.initialize(); // initialize Google ML Kit
         userDataManager.initialize(context); // initialize settings
 
-        // calibration process
+        // settings
+        getSettingData(); // get setting data. Will set to default if no value found
         leftCalibrationData = userDataManager.getCalibrationFiles(context, leftEyeFileNames);
         rightCalibrationData = userDataManager.getCalibrationFiles(context, rightEyeFileNames);
 
@@ -147,10 +145,12 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
                 length += 1;
                 if (length == 3) { // detected
                     String gazeType = detectionOutput.AnalyzedData.getTypeString(currentGaze);
-                    if (prevInputs.size() > 5) {
+                    if (prevInputs.size() > 25) {
                         prevInputs.clear();
                     }
-                    prevInputs.add(gazeType);
+                    if (!Objects.equals(gazeType, "Straight")) {
+                        prevInputs.add(gazeType);
+                    }
                     detectionOutput.prevInputs = prevInputs;
                     detectionOutput.gestureOutput = type;
                 }
@@ -158,34 +158,7 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
                 currentGaze = type;
                 length = 0;
             }
-            //window.add(type);
-           // gazeCount[type] += 1;
         }
-//        if (window.size() == dwellWindowSize) { // enough frames to determine input
-//            int index = 0, max = -1;
-//            for (int i = 0; i < gazeCount.length; i++) { // get max in array
-//                if (gazeCount[i] > max) {
-//                    max = gazeCount[i];
-//                    index = i;
-//                }
-//            }
-//            //Log.d("MVPModel", Arrays.toString(gazeCount));
-//            String gazeType = detectionOutput.AnalyzedData.getTypeString(index);
-//            if (max >= templateSuccessRate && !Objects.equals(gazeType, "Straight")) { // more than half of the inputs, not straight, counts
-//                if (prevInputs.size() > 5) {
-//                    prevInputs.clear();
-//                }
-//                prevInputs.add(gazeType);
-//                detectionOutput.prevInputs = prevInputs;
-//                detectionOutput.gestureOutput = index;
-//
-//                window.clear(); // clear window after input detected
-//                gazeCount = new int[gazeNum];
-//            } else {
-//                int lastIndex = window.poll(); // get the last element out
-//                gazeCount[lastIndex] -= 1; // decrease number
-//            }
-//        }
     }
 
     private Rect getBoundingBox(List<PointF> points, Mat mat) {
@@ -247,7 +220,6 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
 
         double normalizedX = (irisCenter.x - corners[0].x) / (corners[2].x - corners[0].x); // normalized x coordinate
         double normalizedY = (irisCenter.y - corners[1].y) / (corners[3].y - corners[1].y); // normalized y coordinate
-
         return new Point(normalizedX, normalizedY);
     }
 
@@ -355,11 +327,30 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
     }
 
     @Override
-    public void onSettingValueChange(String valueName, int value) {
+    public void onSettingValueChange(String valueName, String value) { // checks for change and stores the values
+
+        for (String i: storedSettingNames) { // check if value should be a stored value
+            if (Objects.equals(i, valueName)) {
+                settings.put(valueName, value);
+            }
+        }
+
+        userDataManager.setString(valueName, value);
         if (Objects.equals(valueName, "Threshold")) {
-            detector.thresholdValue = value;
+            detector.thresholdValue = Integer.parseInt(value);
         } else if (Objects.equals(valueName, "Sensitivity")) {
-            detector.sensitivity = (float) value / 1000;
+            detector.sensitivity = (float) Integer.parseInt(value) / 1000;
+        }
+    }
+
+    @Override
+    public HashMap<String, String> getSettings() {
+        return settings;
+    }
+
+    private void getSettingData() {
+        for (String i: storedSettingNames) {
+            settings.put(i, userDataManager.getString(i));
         }
     }
 }

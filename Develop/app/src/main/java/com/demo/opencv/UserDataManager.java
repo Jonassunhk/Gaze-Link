@@ -15,35 +15,49 @@ import androidx.datastore.rxjava2.RxDataStore;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.reactivex.Flowable;
 import io.reactivex.Single;
 
 public class UserDataManager extends Application {
     RxDataStore<androidx.datastore.preferences.core.Preferences> dataStore;
+    Map<String, String> defaultSettings = new HashMap<>();
     public void initialize(Context mContext) { // initialize the shared preferences
         dataStore = new RxPreferenceDataStoreBuilder(mContext, "settings").build();
-        // set default values for all preferences:
-        setInt("Sensitivity", 100); // determines how sensitive the detection will mark something as a gaze input
-        setInt("Detection Interval", 12); // determines how may frames the app will consider to detect one gaze input
+        // set default settings
+        defaultSettings.put("Threshold", "50");
+        defaultSettings.put("TextEntryMode", "2");
+        defaultSettings.put("Sensitivity", "20");
+        defaultSettings.put("Context", "");
     }
 
-    public int getInt(String name) { // read
-        Preferences.Key<Integer> preference = PreferencesKeys.intKey(name);
-        Flowable<Integer> flowable = dataStore.data().map(prefs -> prefs.get(preference));
-        int result = flowable.firstElement().blockingGet();
+    private String getDefaultSettings(String valueName) {
+        return defaultSettings.get(valueName);
+    }
+
+    public String getString(String name) { // read
+        Preferences.Key<String> preference = PreferencesKeys.stringKey(name);
+        Flowable<String> flowable = dataStore.data().map(prefs -> {
+            if (prefs.get(preference) == null) { // no data
+                return getDefaultSettings(name);
+            } else { // data found
+                return prefs.get(preference);
+            }
+
+        });
+        String result = flowable.firstElement().blockingGet();
         Log.d("UserSettings", "Value of " + name + " is " + result);
         return result;
     }
 
-    public void setInt(String name, int value) { // write
-
-        Preferences.Key<Integer> preference = PreferencesKeys.intKey(name); // get the key first
-
+    public void setString(String name, String value) { // write
+        Preferences.Key<String> preference = PreferencesKeys.stringKey(name); // get the key first
         dataStore.updateDataAsync(prefsIn -> { // update the result
             MutablePreferences mutablePreferences = prefsIn.toMutablePreferences();
-            Integer currentInt = prefsIn.get(preference);
-            Log.d("UserSettings", "Changed " + name + " from " + currentInt + " to " + value);
+            String currentString = prefsIn.get(preference);
+            Log.d("UserSettings", "Changed " + name + " from " + currentString + " to " + value);
             mutablePreferences.set(preference, value);
             return Single.just(mutablePreferences);
         });

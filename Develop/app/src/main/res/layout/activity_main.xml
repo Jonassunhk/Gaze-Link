@@ -73,7 +73,6 @@
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/fragmentContainerView"
-            android:name="com.demo.opencv.dev_mode_display"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </LinearLayout>

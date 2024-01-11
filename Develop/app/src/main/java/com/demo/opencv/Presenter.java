@@ -13,8 +13,9 @@ import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Objects;
-
 
 public class Presenter extends AppCompatActivity implements ContractInterface.Presenter {
 
@@ -27,14 +28,16 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     private final KeyboardManager keyboardManager = new KeyboardManager();
     private final TextEntryManager textEntryManager = new TextEntryManager();
     AppLiveData appliveData = new AppLiveData();
-    openAIManager openAIManager = new openAIManager();
+    OpenAIManager OpenAIManager = new OpenAIManager();
     AudioManager audioManager = new AudioManager();
     int tempNum = 7;
     int textEntryMode = 2;
     int calibrationState = -1; // -1 = idle, 0 - tempNum = during calibration
     Bitmap[] leftCalibrationData = new Bitmap[tempNum];
     Bitmap[] rightCalibrationData = new Bitmap[tempNum];
+    HashMap<String, String> settings = new HashMap<>();
     String[] calibrationMessages = {"Look left and down", "Look right and down", "Look straight", "Look up", "Look down", "Look left and up", "Look right and up"};
+    private final String[] reference = {"Straight", "Left", "Right", "Up", "Down", "Closed", "Left Up", "Right Up"};
     public ClinicalData clinicalData = new ClinicalData();
     ToneGenerator toneGenerator;
     // instantiating the objects of View and Model Interface
@@ -60,9 +63,12 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     public void initialize(Context mContext, Context applicationContext) throws IOException {
 
         Log.d("MVPPresenter", "Model Initialized");
+        this.mContext = mContext;
+
         model.initialize(mContext); // MVP model initialization
         keyboardManager.initialize(); // keyboard initialization
         textEntryManager.initialize(mContext); // text prediction initialization
+        clinicalData = new ClinicalData();
 
         // calibration
         leftCalibrationData = model.getLeftCalibrationData(); // get original calibration data
@@ -70,14 +76,15 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
         // if there is no calibration data
         if (leftCalibrationData == null) { leftCalibrationData = new Bitmap[tempNum]; }
         if (rightCalibrationData == null) { rightCalibrationData = new Bitmap[tempNum]; }
-
         appliveData.calibrationInstruction = "";
-        this.mContext = mContext;
 
         toneGenerator = new ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 100);
 
+        //settings
+        settings = model.getSettings();
+
         // openAI
-        openAIManager.initialize(mContext);
+        OpenAIManager.initialize(mContext);
         audioManager.initialize(mContext);
 
         prevMat = new Mat();
@@ -92,7 +99,8 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
             leftCalibrationData[0] = null;
             rightCalibrationData[0] = null;
             appliveData.calibrationInstruction = calibrationMessages[0];
-            clinicalData = new ClinicalData(); // clear clinical data
+            clinicalData.leftNICX.clear();
+            clinicalData.leftNICY.clear();
 
         } else { // during calibration
             Mat[] eyeMats = appliveData.DetectionOutput.testingMats;
@@ -149,20 +157,29 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     public String getMode() { return mode; }
 
     @Override
-    public void onSettingValueChange(String valueName, int value) {
+    public void onSettingValueChange(String valueName, String value) {
         if (Objects.equals(valueName, "TextEntryMode")) {
-            if (value == 0) {
+            if (Objects.equals(value, "0")) {
                 Log.d("Presenter", "Switched to letter-by-letter mode");
-            } else if (value == 1) {
+            } else if (Objects.equals(value, "1")) {
                 Log.d("Presenter", "Switched to ambiguous keyboard only mode");
                 textEntryManager.LLMEnabled = false;
-            } else if (value == 2) {
+            } else if (Objects.equals(value, "2")) {
                 Log.d("Presenter", "Switched to ambiguous keyboard + LLM mode");
                 textEntryManager.LLMEnabled = true;
             }
+            textEntryMode = Integer.parseInt(value);
         }
-        textEntryMode = value;
+        if (Objects.equals(valueName, "Context")) {
+            textEntryManager.updateContext(value);
+        }
+        settings.put(valueName, value);
         model.onSettingValueChange(valueName, value);
+    }
+
+    @Override
+    public HashMap<String, String> getSettings() {
+        return settings;
     }
 
     private boolean equal(Mat a, Mat b) {
@@ -199,6 +216,10 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
                     toneGenerator.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
 
                     if (Objects.equals(mode, "Text")) { // only do text input in text mode
+
+                        String gazeLogInput = Calendar.getInstance().getTime() + ": " + reference[gazeType];
+                        clinicalData.gazeLog.add(gazeLogInput);
+
                         if (textEntryMode == 0) { // letter-by-letter mode
                             keyboardManager.processInput(gazeType);
                             KeyboardData keyboardData = keyboardManager.getDisplays();
@@ -213,7 +234,6 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
             } else if (calibrationState != -1 && Objects.equals(mode, "Calibration")) { // when the user is calibrating
                 clinicalData.leftNICX.add((float)detectionOutput.leftNIC.x);
                 clinicalData.leftNICY.add((float)detectionOutput.leftNIC.y);
-                clinicalData.gazeType.add(detectionOutput.AnalyzedData.getTypeString(detectionOutput.AnalyzedData.GazeType));
             }
         }
 

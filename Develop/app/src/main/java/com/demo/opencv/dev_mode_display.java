@@ -22,28 +22,51 @@ import android.widget.TextView;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
+import java.util.HashMap;
+import java.util.Objects;
+
 public class dev_mode_display extends Fragment {
     private UIViewModel viewModel;
     Activity mActivity;
     ImageView[] images = new ImageView[4];
     TextView[] texts = new TextView[7];
+    TextView gazeInputLog;
     Handler handler;
     Runnable updateUI;
+    SeekBar lightingSeekBar, sensitivitySeekBar, textEntryModeSeekBar;
+
     public dev_mode_display() {
         // Required empty public constructor
     }
 
-    public interface OnSeekBarChangeListener {
+    public interface devModeListener {
         void onSeekBarValueChanged(String valueName, int value);
     }
-    private OnSeekBarChangeListener callback;
+    private devModeListener callback;
+
+    public static dev_mode_display newInstance(HashMap<String, String> hashMap) {
+        dev_mode_display fragment = new dev_mode_display();
+        Bundle args = new Bundle();
+
+        String[] displayedSettings = {"Threshold", "TextEntryMode", "Sensitivity"};
+        if (hashMap != null) {
+            for (String i: displayedSettings) {
+                if (hashMap.get(i) != null) {
+                    args.putString(i, hashMap.get(i));
+                }
+            }
+        }
+
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         // Ensure that the container activity has implemented the callback interface
         try {
-            callback = (OnSeekBarChangeListener) context;
+            callback = (devModeListener) context;
         } catch (ClassCastException e) {
             throw new ClassCastException(context + " must implement OnSeekBarChangeListener");
         }
@@ -69,12 +92,40 @@ public class dev_mode_display extends Fragment {
         handler.removeCallbacks(updateUI);
     }
 
+    public void updateSettings(Bundle args) {
+
+        int sensitivity = Integer.parseInt(Objects.requireNonNull(args.getString("Sensitivity")));
+        int textEntryMode = Integer.parseInt(Objects.requireNonNull(args.getString("TextEntryMode")));
+        int irisLighting = Integer.parseInt(Objects.requireNonNull(args.getString("Threshold")));
+
+        Log.d("DevModeDisplay", "Settings updated " + sensitivity + ' ' + textEntryMode);
+
+        String text = "Iris Lighting Threshold: " + irisLighting;
+        texts[4].setText(text);
+        lightingSeekBar.setProgress(irisLighting);
+
+        text = "Gaze Sensitivity: " + sensitivity;
+        texts[5].setText(text);
+        sensitivitySeekBar.setProgress(sensitivity);
+
+        String label = "";
+        if (textEntryMode == 0) {label = "letter-by-letter"; }
+        else if (textEntryMode == 1) {label = "ambiguous keyboard only";}
+        else if (textEntryMode == 2) {label = "ambiguous keyboard + LLM";}
+        text = "Current text-entry mode: " + label;
+        texts[6].setText(text);
+        textEntryModeSeekBar.setProgress(textEntryMode);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
 
         // different image templates on the dev mode display
         images[0] = mActivity.findViewById(R.id.imageView1);
-        images[1] = mActivity.findViewById(R.id.imageView2);
         texts[0] = mActivity.findViewById(R.id.textView1);
         texts[1] = mActivity.findViewById(R.id.textView2);
         texts[2] = mActivity.findViewById(R.id.textView3);
@@ -82,10 +133,13 @@ public class dev_mode_display extends Fragment {
         texts[4] = mActivity.findViewById(R.id.textView5);
         texts[5] = mActivity.findViewById(R.id.textView6);
         texts[6] = mActivity.findViewById(R.id.textView7);
-
-        SeekBar lightingSeekBar = mActivity.findViewById(R.id.seekBar);
-        SeekBar sensitivitySeekBar = mActivity.findViewById(R.id.seekBar2);
-        SeekBar textEntryModeSeekBar = mActivity.findViewById(R.id.seekBar3);
+        gazeInputLog = mActivity.findViewById(R.id.gazeInputLog2);
+        lightingSeekBar = mActivity.findViewById(R.id.seekBar);
+        sensitivitySeekBar = mActivity.findViewById(R.id.seekBar2);
+        textEntryModeSeekBar = mActivity.findViewById(R.id.seekBar3);
+        Bundle args = getArguments();
+        assert args != null;
+        updateSettings(args);
 
         SeekBar.OnSeekBarChangeListener listener = new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -94,11 +148,9 @@ public class dev_mode_display extends Fragment {
                     if (seekBar == lightingSeekBar) {
                         String text = "Iris Lighting Threshold: " + progress;
                         texts[4].setText(text);
-                        callback.onSeekBarValueChanged("Threshold", progress);
                     } else if (seekBar == sensitivitySeekBar) {
                         String text = "Gaze Sensitivity: " + progress;
                         texts[5].setText(text);
-                        callback.onSeekBarValueChanged("Sensitivity", progress);
                     } else if (seekBar == textEntryModeSeekBar) {
                         String label = "";
                         if (progress == 0) {label = "letter-by-letter"; }
@@ -106,20 +158,27 @@ public class dev_mode_display extends Fragment {
                         else if (progress == 2) {label = "ambiguous keyboard + LLM";}
                         String text = "Current text-entry mode: " + label;
                         texts[6].setText(text);
-                        callback.onSeekBarValueChanged("TextEntryMode", progress);
                     }
                 }
             }
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                if (seekBar == lightingSeekBar) {
+                    callback.onSeekBarValueChanged("Threshold", progress);
+                } else if (seekBar == sensitivitySeekBar) {
+                    callback.onSeekBarValueChanged("Sensitivity", progress);
+                } else if (seekBar == textEntryModeSeekBar) {
+                    callback.onSeekBarValueChanged("TextEntryMode", progress);
+                }
+            }
         };
 
         lightingSeekBar.setOnSeekBarChangeListener(listener);
         sensitivitySeekBar.setOnSeekBarChangeListener(listener);
         textEntryModeSeekBar.setOnSeekBarChangeListener(listener);
-
 
         handler = new Handler(Looper.getMainLooper());
         updateUI = new Runnable(){
@@ -136,10 +195,13 @@ public class dev_mode_display extends Fragment {
                         images[0].setImageBitmap(matToBitmap(detection.testingMats[0]));
                     }
 
-                    if (detection.testingMats[2] != null && detection.testingMats[2].width() > 0 && detection.testingMats[2].height() > 0) {
-                        images[1].setImageBitmap(matToBitmap(detection.testingMats[2]));
+//                    if (detection.testingMats[2] != null && detection.testingMats[2].width() > 0 && detection.testingMats[2].height() > 0) {
+//                        //images[1].setImageBitmap(matToBitmap(detection.testingMats[2]));
+//                    }
+                    if (detection.prevInputs != null) {
+                        String listString = String.join(", ", detection.prevInputs);
+                        gazeInputLog.setText("Gaze input log: " + listString);
                     }
-
                     if (detection.AnalyzedData != null) {
                         String s = "Overall Gaze Type: " + detection.AnalyzedData.getTypeString(detection.AnalyzedData.GazeType);
                         texts[1].setText(s);
@@ -164,8 +226,6 @@ public class dev_mode_display extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         Log.d("devModeDisplay", "View Created");
-        View newView = inflater.inflate(R.layout.dev_mode_fragment, container, false);
-
-        return newView;
+        return inflater.inflate(R.layout.dev_mode_fragment, container, false);
     }
 }

@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.YAxis;
@@ -55,7 +56,8 @@ public class clinician_mode_display extends Fragment {
     private static ArrayList<Entry> setChartData(float[] floatArray, String[] gazeType) {
         ArrayList<Entry> dataset = new ArrayList<>();
         for (int i = 0; i < floatArray.length; i++) {
-            if (floatArray[i] < 1 && floatArray[i] > 0 && !Objects.equals(gazeType[i], "Closed")) { // only get values in the range
+            if (gazeType.length > i && floatArray[i] < 1 && floatArray[i] > 0 && !Objects.equals(gazeType[i], "Closed")) {
+                // only get values in the range
                 dataset.add(new Entry(i, floatArray[i]));
             }
         }
@@ -66,10 +68,15 @@ public class clinician_mode_display extends Fragment {
         clinician_mode_display fragment = new clinician_mode_display();
         Bundle args = new Bundle();
 
-        if (clinicalData != null && clinicalData.leftNICX != null && clinicalData.gazeType != null) {
-            args.putFloatArray("leftNICX", FloatListToArray(clinicalData.leftNICX));
-            args.putFloatArray("leftNICY", FloatListToArray(clinicalData.leftNICY));
-            args.putStringArray("gazeType", StringListToArray(clinicalData.gazeType));
+        if (clinicalData != null) {
+            if (clinicalData.gazeLog != null) {
+                args.putStringArray("gazeInputLog", StringListToArray(clinicalData.gazeLog));
+            }
+            if (clinicalData.leftNICX != null && clinicalData.leftNICY != null) {
+                args.putFloatArray("leftNICX", FloatListToArray(clinicalData.leftNICX));
+                args.putFloatArray("leftNICY", FloatListToArray(clinicalData.leftNICY));
+
+            }
         }
 
         fragment.setArguments(args);
@@ -115,12 +122,22 @@ public class clinician_mode_display extends Fragment {
             Log.d("ClinicalMode", "Received Data");
             float[] leftNICX = args.getFloatArray("leftNICX"); // left NIC x-coordinate
             float[] leftNICY = args.getFloatArray("leftNICY"); // left NIC y-coordinate
-            String[] gazeType = args.getStringArray("gazeType"); // gaze type
+            String[] gazeInputLog = args.getStringArray("gazeInputLog"); // gaze type
 
-            if (leftNICX != null && leftNICY != null && gazeType != null) { // if data present
-                Log.d("ClinicalMode", "leftNICX size = " + leftNICX.length + " gazeType size = " + gazeType.length);
-                ArrayList<Entry> dataset1 = setChartData(leftNICX, gazeType); // convert to data type
-                ArrayList<Entry> dataset2 = setChartData(leftNICY, gazeType);
+            if (gazeInputLog != null) { // adding the gaze input log
+                Log.d("ClinicalMode", "Gaze input log size = " + gazeInputLog.length);
+                TextView gazeInputLogView = mActivity.findViewById(R.id.gazeLogText);
+                StringBuilder targetString = new StringBuilder();
+                for (String s : gazeInputLog) {
+                    targetString.append(s);
+                    targetString.append('\n');
+                }
+                gazeInputLogView.setText(targetString.toString());
+            }
+
+            if (leftNICX != null && leftNICY != null) { // if data present, adding graph
+                ArrayList<Entry> dataset1 = setChartData(leftNICX, gazeInputLog); // convert to data type
+                ArrayList<Entry> dataset2 = setChartData(leftNICY, gazeInputLog);
 
                 LineDataSet set1, set2; // define data sets
                 set1 = initLineDataSet(dataset1, "NIC left x-coordinate", Color.BLUE);

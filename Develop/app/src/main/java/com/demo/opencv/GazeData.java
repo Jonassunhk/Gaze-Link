@@ -6,7 +6,7 @@ public class GazeData {
     int GazeType;
     int GazeLength;
     float GazeProbability;
-    private final String[] reference = {"Straight", "Left", "Right", "Up", "Down", "Closed", "LeftUp", "RightUp"};
+    private final String[] reference = {"Straight", "Left", "Right", "Up", "Down", "Closed", "LeftUp", "RightUp", "ClosedLong"};
 
     public void setGazeData(Boolean success, int gazeType, int gazeLength, float gazeProbability) {
         this.Success = success;

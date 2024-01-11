@@ -8,8 +8,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import java.io.File;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -23,7 +23,7 @@ import retrofit2.http.Body;
 import retrofit2.http.Headers;
 import retrofit2.http.POST;
 
-public class openAIManager extends AppCompatActivity {
+public class OpenAIManager extends AppCompatActivity {
     private static final String OPENAI_API_KEY = "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";
     HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
     OpenAIService service;
@@ -57,35 +57,24 @@ public class openAIManager extends AppCompatActivity {
         LocalBroadcastManager.getInstance(mContext).sendBroadcast(intent);
     }
 
-    public File textToSpeech(String text) {
-        TextToSpeechInput textToSpeechInput = new TextToSpeechInput("tts-1", "alloy", text);
-        final File[] speech = new File[1];
-        service.textToSpeech(textToSpeechInput).enqueue(new Callback<>() {
-            @Override
-            public void onResponse(@NonNull Call<TextToSpeechOutput> call, @NonNull Response<TextToSpeechOutput> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    Log.d("TextToSpeech", "Received voice file");
-
-                    speech[0] = response.body().response;
-                } else {
-                    Log.d("TextToSpeech", "Error: response not successful");
-                }
-            }
-            @Override
-            public void onFailure(@NonNull Call<TextToSpeechOutput> call, @NonNull Throwable t) {
-                Log.d("TextToSpeech", "Failure: " + t.getMessage());
-            }
-        });
-        return speech[0];
-    }
-
     public void generateText(String tag, String prompt) { // TODO: add tag to keep track of the usage
 
         // Prepare the request body
         Message messageStructure = new Message("user", prompt);
-        Message[] messages = new Message[1];
-        messages[0] = messageStructure;
-        TextGenerationInput requestBody = new TextGenerationInput(messages,"gpt-3.5-turbo");
+        Message messageStructure2 = new Message("system", "You are an AI assistant for patients with motor neuron disease to communicate in a conversation. Your goal is to generate a grammatical and coheret sentence with keywords they typed that fits the conversation's context.");
+
+        TextGenerationInput requestBody;
+        if (Objects.equals(tag, "SP")) { // use sentence prediction model
+            Message[] messages = new Message[2];
+            messages[0] = messageStructure;
+            messages[1] = messageStructure2;
+            requestBody = new TextGenerationInput(messages,"ft:gpt-3.5-turbo-1106:mci::8b0Kx0tj");
+        } else {
+            Message[] messages = new Message[1];
+            messages[0] = messageStructure;
+            requestBody = new TextGenerationInput(messages,"gpt-3.5-turbo");
+        }
+
         service.generateText(requestBody).enqueue(new Callback<>() {
             @Override
             public void onResponse(@NonNull Call<TextGenerationOutput> call, @NonNull Response<TextGenerationOutput> response) {
@@ -116,14 +105,11 @@ public class openAIManager extends AppCompatActivity {
         })
         @POST("https://api.openai.com/v1/chat/completions")
         Call<TextGenerationOutput> generateText(@Body TextGenerationInput body);
-        Call<TextToSpeechOutput> textToSpeech(@Body TextToSpeechInput body);
     }
 
     public record Message(String role, String content) {} // container for the output from the model
     public record TextGenerationInput(Message[] messages, String model) {} // container for call request to the model
     public record Choice(String finish_reason, int index, Message message) {} // Response model for the OpenAI API
     public record TextGenerationOutput(List<Choice> choices) {} // container for callback from the model
-    public record TextToSpeechInput(String model, String voice, String input) {}
-    public record TextToSpeechOutput(File response) {}
 
 }
