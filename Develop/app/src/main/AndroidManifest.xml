@@ -34,7 +34,7 @@
             android:name="com.demo.opencv.MainActivity"
             android:exported="true"
             android:screenOrientation="landscape"
-            android:label="opencv" >
+            android:label="Gaze Link" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -18,10 +18,10 @@ import java.util.Objects;
 public class TextEntryManager extends AppCompatActivity {
     public boolean LLMEnabled = true;
     List<String> wordPredictions = new ArrayList<>(); // the word predictions shown in word mode
-    int wordsPerPage = 2;
-    int NWPWords = 6;
+    int wordsPerPage = 4;
+    int NWPWords = 4;
     int currentPage = 1;
-    int mode = 0; // 0: word mode, 1: blurry input
+    int mode = 1; // 0: word mode, 1: blurry input
     String context = ""; // the context content for context-based predictions
     KeyboardData keyboardData = new KeyboardData(); // data structure for UI display
     Context mContext;
@@ -57,17 +57,14 @@ public class TextEntryManager extends AppCompatActivity {
 
     // up gaze = 0, left gaze = 1, right gaze = 2, closed = 3, left-up gaze = 4, right-up gaze = 5
     String[] wordModeUI =
-            {"Undo", "More words", "Next word", "Speak", "", "", "WORD MODE"};
-    int[] wordIndex = {-1, -1, -1, -1, 0, 1, -1};
+            {"SPEAK", "NO MATCH", "NO MATCH", "SWITCH", "NO MATCH", "NO MATCH", "NOPQRST", "UVWXYZ", "ABCDEF", "GHIJKLM"};
+    int[] wordIndex = {-1, 2, 3, -1, 0, 1, -1, -1, -1, -1};
     void WordMode(int selection) {
         switch (selection) {
-            case 0 -> {
-                current.deleteWord();
-                sentencePrediction();
-            }
-            case 1 -> nextPage();
-            case 2 -> mode = 1;
-            case 3 -> utterText();
+            case 0 -> utterText();
+            case 1 -> {selectWord(2); nextWordPrediction(NWPWords); sentencePrediction(); }
+            case 2 -> {selectWord(3); nextWordPrediction(NWPWords); sentencePrediction(); }
+            case 3 -> mode = 1;
             case 4 -> {selectWord(0); nextWordPrediction(NWPWords); sentencePrediction(); }
             case 5 -> {selectWord(1); nextWordPrediction(NWPWords); sentencePrediction(); }
         }
@@ -75,22 +72,27 @@ public class TextEntryManager extends AppCompatActivity {
 
     // up gaze = 0, left gaze = 1, right gaze = 2, closed = 3, left-up gaze = 4, right-up gaze = 5
     String[] letterModeUI = {
-            "Delete", "NOPQRST", "UVWXYZ", "Finish", "ABCDEF", "GHIJKLM", "LETTER MODE"
+            "DELETE", "NOPQRST", "UVWXYZ", "SWITCH", "ABCDEF", "GHIJKLM", "NO MATCH","NO MATCH", "NO MATCH", "NO MATCH"
     };
+    int[] wordIndex2 = {-1, -1, -1, -1, -1, -1, 2, 3, 0, 1};
     void letterMode(int selection) {
         switch (selection) {
-            case 0 -> current.deleteBlurryInput();
-            case 1 -> current.addBlurryInput("2");
-            case 2 -> current.addBlurryInput("3");
-            case 3 -> {
-                mode = 0;
-                currentPage = 1;
-                if (!Objects.equals(current.BlurryInput, "")) { // blurry input not empty
-                    wordPredictions = blurryInput.getMatchingWords(current.BlurryInput);
+            case 0 -> { // delete blurry input or word
+                if (Objects.equals(current.BlurryInput, "")) {
+                    current.deleteWord();
+                    sentencePrediction();
+                } else {
+                    current.deleteBlurryInput();
                 }
             }
+            case 1 -> current.addBlurryInput("2");
+            case 2 -> current.addBlurryInput("3");
+            case 3 -> mode = 0;
             case 4 -> current.addBlurryInput("0");
             case 5 -> current.addBlurryInput("1");
+        }
+        if (!Objects.equals(current.BlurryInput, "")) { // blurry input not empty
+            wordPredictions = blurryInput.getMatchingWords(current.BlurryInput);
         }
     }
 
@@ -99,6 +101,7 @@ public class TextEntryManager extends AppCompatActivity {
         if (wordPredictions.size() > 0) {
             String[] nextPageWords = blurryInput.getWordPage(wordPredictions, currentPage, wordsPerPage);
             wordModeUI = fillWords(nextPageWords, wordIndex, wordModeUI);
+            letterModeUI = fillWords(nextPageWords, wordIndex2, letterModeUI);
         }
         switch (mode) {
             case 0 -> keyboardData.setOptions(wordModeUI);
@@ -112,7 +115,12 @@ public class TextEntryManager extends AppCompatActivity {
         } else {
             keyboardData.sentence = "Enable LLM to generate";
         }
-        keyboardData.context = "Context: " + context;
+        if (Objects.equals(context, "")) {
+            keyboardData.context = "Enter context: ";
+        } else {
+            keyboardData.context = "Context: " + context;
+        }
+
     }
 
     public void updateContext(String newContext) {
@@ -128,6 +136,7 @@ public class TextEntryManager extends AppCompatActivity {
     private void sentencePrediction() { // predicting the sentences based on keywords
         if (!LLMEnabled || current.Words.size() == 0) return; // LLM enabled, at least one word
         String finalString = current.getWords();
+        current.Sentence = "Generating...";
         openAIManager.generateText("SP",
                 "Keywords: " + finalString + ". Context: " + context);
     }
@@ -204,8 +213,6 @@ public class TextEntryManager extends AppCompatActivity {
             if (wordIndex[i] != -1) { // check that there's enough words to output
                 if (words.length > wordIndex[i]) { // a word is available to display
                     options[i] = words[wordIndex[i]];
-                } else {
-                    options[i] = ""; // no words
                 }
             }
         }

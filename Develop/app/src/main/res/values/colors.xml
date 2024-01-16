@@ -3,9 +3,10 @@
     <color name="purple_200">#7A9E9F</color>
     <color name="purple_500">#4F6367</color>
     <color name="purple_700">#FF3700B3</color>
-    <color name="beige">#EEF5DB</color>
+    <color name="beige">#DDE6C5</color>
     <color name="columbia_blue">#B8D8D8</color>
     <color name="teal_200">#B8D8D8</color>
+    <color name="bright_yellow_green">#EAF5A2</color>
     <color name="ghost_blue">#cce0e0</color>
     <color name="sunset_orange">#FE5F55</color>
     <color name="teal_700">#FF018786</color>

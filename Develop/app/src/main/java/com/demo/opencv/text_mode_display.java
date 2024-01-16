@@ -2,6 +2,7 @@ package com.demo.opencv;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -10,13 +11,15 @@ import androidx.lifecycle.ViewModelProvider;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class text_mode_display extends Fragment {
     /*
@@ -30,9 +33,11 @@ public class text_mode_display extends Fragment {
     Runnable updateUI;
     TextView gazeInputLog, textInput, sentenceBox;
     EditText contextBox;
-    TextView[] keyboardOptions = new TextView[6];
-    private boolean useFirstLayout = false;
+    final int[] keyboardInputMat = {-1, 1, 2, 0, -1, 3, 4, 5}; // convert gaze type into keyboard input
 
+    List<TextView> keyboardOptions = new ArrayList<>();
+    private boolean useFirstLayout = false;
+    int prevIndex = 0;
     public text_mode_display() {
         // Required empty public constructor
     }
@@ -69,6 +74,23 @@ public class text_mode_display extends Fragment {
         }
     }
 
+    private void setBackground(int index, int originalID, int newID, long delayMillis) {
+        TextView target = keyboardOptions.get(index);
+        int left = target.getPaddingLeft();
+        int top = target.getPaddingTop();
+        int right = target.getPaddingRight();
+        int bottom = target.getPaddingBottom();
+        target.setBackgroundResource(newID);
+        target.setPadding(left, top, right, bottom);
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                target.setBackgroundResource(originalID);
+                target.setPadding(left, top, right, bottom);
+            }
+        }, delayMillis); // delayMillis is the time after which the color will change back
+    }
+
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
@@ -87,25 +109,28 @@ public class text_mode_display extends Fragment {
             gazeInputLog = mActivity.findViewById(R.id.gazeInputLog);
             textInput = mActivity.findViewById(R.id.textInput);
             contextBox = mActivity.findViewById(R.id.contextBox);
-            keyboardOptions[0] = mActivity.findViewById(R.id.upGazeText); // 0: up
-            keyboardOptions[1] = mActivity.findViewById(R.id.leftGazeText); // 1: left
-            keyboardOptions[2] = mActivity.findViewById(R.id.rightGazeText); // 2: right
-            keyboardOptions[3] = mActivity.findViewById(R.id.closedGazeText); // 3: closed gaze
-            keyboardOptions[4] = mActivity.findViewById(R.id.leftUpGazeText); // 4: left up
-            keyboardOptions[5] = mActivity.findViewById(R.id.rightUpGazeText); // 5: right up
-            keyboardOptions[6] = mActivity.findViewById(R.id.textModeTitle); // 6: title
+            keyboardOptions.add(mActivity.findViewById(R.id.upGazeText)); // 0: up
+            keyboardOptions.add(mActivity.findViewById(R.id.leftGazeText)); // 1: left
+            keyboardOptions.add(mActivity.findViewById(R.id.rightGazeText)); // 2: right
+            keyboardOptions.add(mActivity.findViewById(R.id.closedGazeText)); // 3: closed gaze
+            keyboardOptions.add(mActivity.findViewById(R.id.leftUpGazeText)); // 4: left up
+            keyboardOptions.add(mActivity.findViewById(R.id.rightUpGazeText)); // 5: right up
+            keyboardOptions.add(mActivity.findViewById(R.id.textModeTitle)); // 6: title
         } else {
             textInput = mActivity.findViewById(R.id.textInput2);
             contextBox = mActivity.findViewById(R.id.contextBox2);
             sentenceBox = mActivity.findViewById(R.id.sentenceBox2);
-            keyboardOptions[0] = mActivity.findViewById(R.id.upGazeText2); // 0: up
-            keyboardOptions[1] = mActivity.findViewById(R.id.leftGazeText2); // 1: left
-            keyboardOptions[2] = mActivity.findViewById(R.id.rightGazeText2); // 2: right
-            keyboardOptions[3] = mActivity.findViewById(R.id.closedGazeText2); // 3: closed gaze
-            keyboardOptions[4] = mActivity.findViewById(R.id.leftUpGazeText2); // 4: left up
-            keyboardOptions[5] = mActivity.findViewById(R.id.rightUpGazeText2); // 5: right up
+            keyboardOptions.add(mActivity.findViewById(R.id.upGazeText2)); // 0: up
+            keyboardOptions.add(mActivity.findViewById(R.id.leftGazeText2)); // 1: left
+            keyboardOptions.add(mActivity.findViewById(R.id.rightGazeText2)); // 2: right
+            keyboardOptions.add(mActivity.findViewById(R.id.closedGazeText2)); // 3: closed gaze
+            keyboardOptions.add(mActivity.findViewById(R.id.leftUpGazeText2)); // 4: left up
+            keyboardOptions.add(mActivity.findViewById(R.id.rightUpGazeText2)); // 5: right up
+            keyboardOptions.add(mActivity.findViewById(R.id.leftGazeSubText)); // 6. left sub text
+            keyboardOptions.add(mActivity.findViewById(R.id.rightGazeSubText)); // 7. right sub text
+            keyboardOptions.add(mActivity.findViewById(R.id.leftUpGazeSubText)); // 8. left up sub text
+            keyboardOptions.add(mActivity.findViewById(R.id.rightUpGazeSubText)); // 9. right up sub text
         }
-
         assert getArguments() != null;
         String context = getArguments().getString("Context");
         contextBox.setText(context);
@@ -125,9 +150,9 @@ public class text_mode_display extends Fragment {
 
                     KeyboardData keyboardData = item.KeyboardData;
                     if (keyboardData != null) {
-                        for (int i = 0; i < keyboardOptions.length; i++) {
+                        for (int i = 0; i < keyboardOptions.size(); i++) {
                             if (keyboardData.Options.length > i) {
-                                keyboardOptions[i].setText(keyboardData.Options[i]); // display letter labels for keyboard
+                                keyboardOptions.get(i).setText(keyboardData.Options[i]); // display letter labels for keyboard
                             }
                         }
                         //contextBox.setText(keyboardData.context);
@@ -135,6 +160,21 @@ public class text_mode_display extends Fragment {
                         if (!useFirstLayout) {
                             sentenceBox.setText(keyboardData.sentence);
                         }
+                    }
+
+                    if (!useFirstLayout && item.DetectionOutput != null) {
+
+                        //int detection = keyboardInputMat[item.DetectionOutput.AnalyzedData.GazeType]; // the determination for that frame
+                        int actual = keyboardInputMat[item.DetectionOutput.gestureOutput]; // the actual input by the user
+
+                        if (actual != -1) {
+                            if (actual == 0 || actual == 3) {
+                                setBackground(actual, R.drawable.gaze_option_bg_2, R.drawable.gaze_option_bg_selected, 300);
+                            } else {
+                                setBackground(actual, R.drawable.gaze_option_bg_1, R.drawable.gaze_option_bg_selected, 300);
+                            }
+                        }
+
                     }
                 });
             }

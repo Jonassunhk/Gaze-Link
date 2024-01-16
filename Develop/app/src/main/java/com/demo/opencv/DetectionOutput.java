@@ -21,6 +21,7 @@ import java.util.ArrayList;
 public class DetectionOutput {
     GazeData LeftData; GazeData RightData; GazeData AnalyzedData;
 
+
     public void setEyeData(int type, Boolean Success, int GazeType, int GazeLength, float GazeProbability) {
         // 0: left, 1: right, 2: final
         if (type == 0) {
