@@ -10,8 +10,6 @@ import java.util.HashMap;
 
 public interface ContractInterface {
     interface View {
-        void switchMode(String activityName); // method to switch between different modes
-        void displayImage(int code, Bitmap bitmap);
         void updateLiveData(AppLiveData appLiveData);
     }
 
@@ -22,7 +20,7 @@ public interface ContractInterface {
         DetectionOutput classifyGaze(Mat rgbMat); // determine gaze code with output
         Bitmap[] getLeftCalibrationData();
         Bitmap[] getRightCalibrationData();
-        void onSettingValueChange(String valueName, String value);
+        void updateSettings(String valueName, String value);
         HashMap<String, String> getSettings();
     }
 
@@ -35,7 +33,9 @@ public interface ContractInterface {
         ClinicalData getClinicalData();
         void setMode(String value);
         String getMode();
-        void onSettingValueChange(String valueName, String value);
+        void updateSettings(String valueName, String value);
+        void onGazeButtonClicked(int input);
+        void onRecordButtonClicked();
         HashMap<String, String> getSettings();
     }
 }

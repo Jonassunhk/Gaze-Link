@@ -5,7 +5,7 @@
     android:id="@+id/textModeFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:backgroundTint="@color/purple_500"
+    android:backgroundTint="@color/columbia_blue"
     android:orientation="horizontal"
     tools:context=".text_mode_display">
 
@@ -15,56 +15,49 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="0.8"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/textModeTitle"
-            android:layout_width="234dp"
-            android:layout_height="wrap_content"
-            android:padding="6dp"
-            android:text="Text Mode"
-            android:textAlignment="textStart"
-            android:textColor="@color/purple_500"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/contextBox"
-            android:layout_width="match_parent"
-            android:layout_height="72dp"
-            android:background="@color/ghost_blue"
-            android:ems="10"
-            android:gravity="start|top"
-            android:hint="Enter context"
-            android:inputType="textMultiLine"
-            android:textColor="@color/purple_500" />
+        android:background="@color/metal_green"
+        android:orientation="vertical"
+        android:padding="5dp">
 
         <TextView
             android:id="@+id/textInput"
             android:layout_width="match_parent"
-            android:layout_height="113dp"
-            android:background="@color/columbia_blue"
-            android:padding="5sp"
-            android:textColor="@color/black"
-            android:textSize="25sp" />
+            android:layout_height="80dp"
+            android:ems="10"
+            android:gravity="start|top"
+            android:inputType="textMultiLine"
+            android:padding="6dp"
+            android:textColor="@color/ghost_blue"
+            android:textSize="18sp"
+            tools:text="This is the text inputted by the user" />
 
         <TextView
-            android:id="@+id/gazeInputLog"
+            android:id="@+id/sentenceBox"
+            android:layout_width="match_parent"
+            android:layout_height="113dp"
+            android:background="@drawable/text_rounded_green"
+            android:padding="5sp"
+            android:textColor="@color/ghost_blue"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            tools:text="This is the sentence generated" />
+
+        <TextView
+            android:id="@+id/contextBox"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/purple_500"
-            android:padding="5sp"
+            android:padding="6dp"
             android:textAlignment="viewStart"
-            android:textColor="@color/beige"
-            android:textSize="15sp"
-            tools:text="NO INPUT" />
+            android:textColor="@color/ghost_blue"
+            android:textSize="18sp"
+            tools:text="This is the context for the user" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="0.45"
-        android:background="#ECF3F3"
+        android:background="@color/ghost_blue"
         android:orientation="vertical"
         android:padding="5dp">
 
@@ -72,7 +65,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="1dp">
 
             <ImageView
                 android:id="@+id/imageView5"
@@ -87,9 +81,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:padding="2dp"
-                android:textColor="#202020"
-                android:textSize="20sp"
+                android:padding="6dp"
+                android:textColor="@color/metal_green"
+                android:textSize="18sp"
+                android:textStyle="bold"
                 tools:text="Current text" />
 
         </LinearLayout>
@@ -98,7 +93,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="1dp">
 
             <ImageView
                 android:id="@+id/imageView4"
@@ -113,9 +109,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:padding="2dp"
-                android:textColor="#202020"
-                android:textSize="20sp"
+                android:padding="6dp"
+                android:textColor="@color/metal_green"
+                android:textSize="18sp"
+                android:textStyle="bold"
                 tools:text="Current text" />
 
         </LinearLayout>
@@ -124,7 +121,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="1dp">
 
             <ImageView
                 android:id="@+id/imageView6"
@@ -139,9 +137,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:padding="2dp"
-                android:textColor="#202020"
-                android:textSize="20sp"
+                android:padding="6dp"
+                android:textColor="@color/metal_green"
+                android:textSize="18sp"
+                android:textStyle="bold"
                 tools:text="Current text" />
 
         </LinearLayout>
@@ -150,7 +149,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="1dp">
 
             <ImageView
                 android:id="@+id/imageView7"
@@ -165,9 +165,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:padding="2dp"
-                android:textColor="#202020"
-                android:textSize="20sp"
+                android:padding="6dp"
+                android:textColor="@color/metal_green"
+                android:textSize="18sp"
+                android:textStyle="bold"
                 tools:text="Current text" />
 
         </LinearLayout>
@@ -176,7 +177,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="1dp">
 
             <ImageView
                 android:id="@+id/imageView8"
@@ -191,9 +193,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:padding="2dp"
-                android:textColor="#202020"
-                android:textSize="20sp"
+                android:padding="6dp"
+                android:textColor="@color/metal_green"
+                android:textSize="18sp"
+                android:textStyle="bold"
                 tools:text="Current text" />
 
         </LinearLayout>
@@ -202,7 +205,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="1dp">
 
             <ImageView
                 android:id="@+id/imageView9"
@@ -217,9 +221,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:padding="2dp"
-                android:textColor="#202020"
-                android:textSize="20sp"
+                android:padding="6dp"
+                android:textColor="@color/metal_green"
+                android:textSize="18sp"
+                android:textStyle="bold"
                 tools:text="Current text" />
 
         </LinearLayout>

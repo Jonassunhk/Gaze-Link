@@ -1,7 +1,6 @@
 package com.demo.opencv;
 
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CaptureRequest;
 import android.media.Image;
@@ -49,11 +48,11 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
     ContractInterface.Presenter presenter;
     public ImageView[] images = new ImageView[4];
     private final int REQUEST_CODE_PERMISSIONS = 1001;
-    private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA"};
+    private final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
+    private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA", "android.permission.RECORD_AUDIO"};
     private final ExecutorService cameraExecutor = Executors.newSingleThreadExecutor();
     private UIViewModel viewModel;
     Handler mainHandler = new Handler(Looper.getMainLooper());
-    HashMap<String, String> settings = new HashMap<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,8 +65,7 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         } catch (IOException | JSONException e) {
             throw new RuntimeException(e);
         }
-        settings = presenter.getSettings();
-        Log.d("MVPView", "Threshold setting = " + settings.get("Threshold"));
+        Log.d("MVPView", "Threshold setting = " + presenter.getSettings().get("Threshold"));
         //cameraXSetup.initializeCameraX(); // initialize cameraX (raw user input)
         Log.d("MVPView", "CameraX and Presenter initialized");
 
@@ -75,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
             startCamera(); //start camera if permission has been granted by user
         } else{
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
+            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_RECORD_AUDIO_PERMISSION);
         }
         viewModel = new ViewModelProvider(this).get(UIViewModel.class);
 
@@ -88,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         FragmentManager fragmentManager = getSupportFragmentManager();
 
         presenter.setMode("Dev"); // default
-        Fragment newFragment = dev_mode_display.newInstance(settings);
+        Fragment newFragment = dev_mode_display.newInstance(presenter.getSettings());
         fragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainerView, newFragment)
                 .setReorderingAllowed(true)
@@ -111,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         devButton.setOnClickListener(v -> {
                 if (!Objects.equals(presenter.getMode(), "Dev")) {
                     presenter.setMode("Dev");
-                    Fragment devFragment = dev_mode_display.newInstance(settings);
+                    Fragment devFragment = dev_mode_display.newInstance(presenter.getSettings());
                     fragmentManager.beginTransaction()
                         .replace(R.id.fragmentContainerView, devFragment)
                         .setReorderingAllowed(true)
@@ -124,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
         textButton.setOnClickListener(v -> {
             if (!Objects.equals(presenter.getMode(), "Text")) {
                 presenter.setMode("Text");
-                Fragment textFragment = text_mode_display.newInstance(settings.get("Context"));
+                Fragment textFragment = text_mode_display.newInstance(presenter.getSettings().get("Context"));
                 fragmentManager.beginTransaction()
                         .replace(R.id.fragmentContainerView, textFragment)
                         .setReorderingAllowed(true)
@@ -146,10 +145,6 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
     }
 
     @Override
-    public void switchMode(String activityName) {
-    }
-
-    @Override
     public void onCalibrationButtonClick() {
         presenter.updateCalibration();
     }
@@ -158,15 +153,6 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
     public void updateLiveData(AppLiveData appLiveData) {
         Runnable myRunnable = () -> viewModel.selectItem(appLiveData);
         mainHandler.post(myRunnable);
-    }
-    @Override
-    public void displayImage(int code, Bitmap bitmap) {
-        ImageView view = images[code];
-        if (view != null) {
-            runOnUiThread(() -> view.setImageBitmap(bitmap));
-
-        }
-        Log.d("MVPView", "Displayed image on activity");
     }
 
     @Override
@@ -217,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
                     image.close();
                 } else {
                     if (image.getFormat() == ImageFormat.YUV_420_888 && image.getPlanes().length == 3) {
-                        Log.d("MVPView", "Image Format Correct: Frame Loaded");
+                        //Log.d("MVPView", "Image Format Correct: Frame Loaded");
                         Image newImage = image.getImage();
                         Mat rgbaMat = Yuv420.rgb(newImage);
 
@@ -254,19 +240,30 @@ public class MainActivity extends AppCompatActivity implements ContractInterface
                 this.finish();
             }
         }
+        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
+            Log.d("MVPView", "Record audio permission granted");
+        }
     }
 
     @Override
     public void onSeekBarValueChanged(String valueName, int value) {
-        settings.put(valueName, String.valueOf(value));
-        presenter.onSettingValueChange(valueName, String.valueOf(value));
+        presenter.updateSettings(valueName, String.valueOf(value));
     }
 
     @Override
     public void onSettingValueChanged(String valueName, String value) {
         Log.d("TextGeneration", "Context Changed to: " + value);
-        settings.put(valueName, value);
-        presenter.onSettingValueChange(valueName, String.valueOf(value));
+        presenter.updateSettings(valueName, String.valueOf(value));
 
+    }
+
+    @Override
+    public void onGazeButtonClicked(int input) {
+        presenter.onGazeButtonClicked(input);
+    }
+
+    @Override
+    public void recordButtonClicked() {
+        presenter.onRecordButtonClicked();
     }
 }

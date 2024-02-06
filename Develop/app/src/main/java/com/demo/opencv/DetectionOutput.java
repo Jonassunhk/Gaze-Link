@@ -44,6 +44,7 @@ public class DetectionOutput {
     }
 
     int gestureOutput; // an input from the user (not the raw data from the frame)
+
     Point leftNIC; // Normalized Iris Center for both eyes
     Mat[] testingMats; // testing mats to show process of analysis
     ArrayList<String> prevInputs; // array to store previous inputs, null until presenter

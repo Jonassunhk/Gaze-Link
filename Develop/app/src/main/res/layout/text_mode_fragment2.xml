@@ -7,6 +7,21 @@
     android:background="@color/purple_500"
     android:orientation="horizontal">
 
+    <ImageButton
+        android:id="@+id/recordButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/record_button_idle"
+        android:contentDescription="A button to record voice"
+        android:src="@drawable/baseline_mic_24"
+        android:translationZ="7dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.688"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.895" />
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="50dp"
@@ -147,19 +162,20 @@
         app:layout_constraintWidth_percent="0.24"
         tools:text="Word 4" />
 
-    <EditText
+    <TextView
         android:id="@+id/contextBox2"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:autofillHints="Enter context here:"
         android:background="@drawable/text_rounded_dark"
         android:fontFamily="sans-serif-medium"
-        android:hint="Enter context here"
-        android:inputType="textCapSentences|textAutoCorrect"
-        android:padding="7sp"
+        android:paddingLeft="7dp"
+        android:paddingTop="7dp"
+        android:paddingRight="50dp"
+        android:paddingBottom="7dp"
         android:textAllCaps="false"
         android:textColor="@color/columbia_blue"
-        android:textColorHint="@color/purple_200"
+        android:textColorHint="@color/columbia_blue"
         android:textSize="18sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -167,7 +183,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.931"
-        app:layout_constraintWidth_percent="0.44" />
+        app:layout_constraintWidth_percent="0.44"
+        tools:text="This is the context that the user will type out. " />
 
     <TextView
         android:id="@+id/sentenceBox2"

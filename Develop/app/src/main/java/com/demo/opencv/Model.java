@@ -327,15 +327,15 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
     }
 
     @Override
-    public void onSettingValueChange(String valueName, String value) { // checks for change and stores the values
+    public void updateSettings(String valueName, String value) { // checks for change and stores the values
 
+        settings.put(valueName, value);
         for (String i: storedSettingNames) { // check if value should be a stored value
             if (Objects.equals(i, valueName)) {
-                settings.put(valueName, value);
+                userDataManager.setString(valueName, value);
             }
         }
 
-        userDataManager.setString(valueName, value);
         if (Objects.equals(valueName, "Threshold")) {
             detector.thresholdValue = Integer.parseInt(value);
         } else if (Objects.equals(valueName, "Sensitivity")) {
@@ -352,5 +352,6 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
         for (String i: storedSettingNames) {
             settings.put(i, userDataManager.getString(i));
         }
+        settings.put("Context", "");
     }
 }

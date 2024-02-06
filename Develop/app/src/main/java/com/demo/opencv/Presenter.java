@@ -17,12 +17,13 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Objects;
 
-public class Presenter extends AppCompatActivity implements ContractInterface.Presenter {
+public class Presenter extends AppCompatActivity implements ContractInterface.Presenter, AudioManager.AudioManagerListener {
 
     Context mContext;
     public boolean presenterBusy = false;
     public String mode = ""; // Calibration, Text, Dev, Clinician
     private boolean first = true;
+    boolean recording = false;
     private ContractInterface.View mainView; // creating object of View Interface
     private final ContractInterface.Model model; // creating object of Model Interface
     private final KeyboardManager keyboardManager = new KeyboardManager();
@@ -35,7 +36,6 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     int calibrationState = -1; // -1 = idle, 0 - tempNum = during calibration
     Bitmap[] leftCalibrationData = new Bitmap[tempNum];
     Bitmap[] rightCalibrationData = new Bitmap[tempNum];
-    HashMap<String, String> settings = new HashMap<>();
     String[] calibrationMessages = {"Look left and down", "Look right and down", "Look straight", "Look up", "Look down", "Look left and up", "Look right and up"};
     private final String[] reference = {"Straight", "Left", "Right", "Up", "Down", "Closed", "Left Up", "Right Up"};
     public ClinicalData clinicalData = new ClinicalData();
@@ -68,6 +68,14 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
         model.initialize(mContext); // MVP model initialization
         keyboardManager.initialize(); // keyboard initialization
         textEntryManager.initialize(mContext); // text prediction initialization
+        if (model.getSettings().get("Context") != null) {
+            textEntryManager.updateContext(model.getSettings().get("Context"));
+        }
+        if (model.getSettings().get("TextEntryMode") != null) {
+            textEntryMode = Integer.parseInt(Objects.requireNonNull(model.getSettings().get("TextEntryMode")));
+            textEntryManager.LLMEnabled = (textEntryMode == 2);
+        }
+
         clinicalData = new ClinicalData();
 
         // calibration
@@ -80,12 +88,12 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
 
         toneGenerator = new ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 100);
 
-        //settings
-        settings = model.getSettings();
-
         // openAI
         OpenAIManager.initialize(mContext);
+
+        // audio + speech recognition
         audioManager.initialize(mContext);
+        audioManager.setAudioManagerListener(this);
 
         prevMat = new Mat();
     }
@@ -157,7 +165,7 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     public String getMode() { return mode; }
 
     @Override
-    public void onSettingValueChange(String valueName, String value) {
+    public void updateSettings(String valueName, String value) {
         if (Objects.equals(valueName, "TextEntryMode")) {
             if (Objects.equals(value, "0")) {
                 Log.d("Presenter", "Switched to letter-by-letter mode");
@@ -171,15 +179,41 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
             textEntryMode = Integer.parseInt(value);
         }
         if (Objects.equals(valueName, "Context")) {
+            Log.d("TextGeneration", "Context changed to " + value);
             textEntryManager.updateContext(value);
         }
-        settings.put(valueName, value);
-        model.onSettingValueChange(valueName, value);
+        model.updateSettings(valueName, value);
+    }
+
+    @Override
+    public void onGazeButtonClicked(int input) {
+        textEntryManager.manageUserInput(input, false);
+    }
+
+    @Override
+    public void onRecordButtonClicked() {
+        if (!recording) {
+            recording = true;
+            toneGenerator.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
+            audioManager.startListening();
+        } else {
+            audioManager.stopListening();
+            recording = false;
+        }
+    }
+
+    @Override
+    public void onAudioUpdated(String key, String value) {
+        recording = false;
+        if (Objects.equals(key, "Context")) {
+            Log.d("AudioManager", "Context received by presenter" + value);
+            updateSettings("Context", value);
+        }
     }
 
     @Override
     public HashMap<String, String> getSettings() {
-        return settings;
+        return model.getSettings();
     }
 
     private boolean equal(Mat a, Mat b) {
@@ -197,11 +231,11 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     @Override
     public void onFrame(Mat rgbMat) {
         presenterBusy = true;
-        if (first) {
-            first = false;
-        } else if (equal(rgbMat, prevMat)) { // prevent identical frames from being processed
-            return;
-        }
+//        if (first) {
+//            first = false;
+//        } else if (equal(rgbMat, prevMat)) { // prevent identical frames from being processed
+//            return;
+//        }
         prevMat = rgbMat;
        // Log.d("MVPPresenter", "Frame loaded");
         DetectionOutput detectionOutput = model.classifyGaze(rgbMat); // get detection output from model
@@ -225,9 +259,8 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
                             KeyboardData keyboardData = keyboardManager.getDisplays();
                             appliveData.setKeyboardDisplays(keyboardData);
                         } else { // other two modes
-                            textEntryManager.manageUserInput(gazeType);
-                            KeyboardData keyboardData = textEntryManager.getDisplays();
-                            appliveData.setKeyboardDisplays(keyboardData);
+                            textEntryManager.manageUserInput(gazeType, true);
+
                         }
                     }
                 }
@@ -236,13 +269,15 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
                 clinicalData.leftNICY.add((float)detectionOutput.leftNIC.y);
             }
         }
+        textEntryManager.updateDisplays();
+        KeyboardData keyboardData = textEntryManager.getDisplays();
+        appliveData.setKeyboardDisplays(keyboardData);
 
+        appliveData.isRecording = recording;
         appliveData.setDetectionOutput(detectionOutput);
         appliveData.leftTemplates = leftCalibrationData; // templates shown in calibration screen
         appliveData.rightTemplates = rightCalibrationData;
         mainView.updateLiveData(appliveData); // display the gaze data and testing mats
         presenterBusy = false;
     }
-
-
 }

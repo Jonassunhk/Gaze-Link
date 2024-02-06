@@ -18,8 +18,8 @@ import java.util.Objects;
 public class TextEntryManager extends AppCompatActivity {
     public boolean LLMEnabled = true;
     List<String> wordPredictions = new ArrayList<>(); // the word predictions shown in word mode
-    int wordsPerPage = 4;
-    int NWPWords = 4;
+    int wordsPerPage = 3;
+    int NWPWords = 6;
     int currentPage = 1;
     int mode = 1; // 0: word mode, 1: blurry input
     String context = ""; // the context content for context-based predictions
@@ -36,13 +36,15 @@ public class TextEntryManager extends AppCompatActivity {
         audioManager.initialize(mContext);
         blurryInput.initialize(mContext);
         LocalBroadcastManager.getInstance(mContext).registerReceiver(mMessageReceiver, new IntentFilter("textGenerationEvent"));
-        //context = "What do you want to eat?";
     }
 
-    public void manageUserInput(int input) {
+    public void manageUserInput(int input, boolean isGazeType) {
         // left gaze = 1, right gaze = 2, up gaze = 0, down gaze = -1, closed = 3, left-up gaze = 4, right-up gaze = 5
-        final int[] keyboardInputMat = {-1, 1, 2, 0, -1, 3, 4, 5}; // convert gaze type into keyboard input
-        int selection = keyboardInputMat[input];
+        int selection = input;
+        if (isGazeType) { // if is gaze type, then process it
+            final int[] keyboardInputMat = {-1, 1, 2, 0, -1, 3, 4, 5}; // convert gaze type into keyboard input
+            selection = keyboardInputMat[input];
+        }
 
         if (selection != -1) {
             if (mode == 0) { // baseline text-entry, mode 0
@@ -57,14 +59,14 @@ public class TextEntryManager extends AppCompatActivity {
 
     // up gaze = 0, left gaze = 1, right gaze = 2, closed = 3, left-up gaze = 4, right-up gaze = 5
     String[] wordModeUI =
-            {"SPEAK", "NO MATCH", "NO MATCH", "SWITCH", "NO MATCH", "NO MATCH", "NOPQRST", "UVWXYZ", "ABCDEF", "GHIJKLM"};
-    int[] wordIndex = {-1, 2, 3, -1, 0, 1, -1, -1, -1, -1};
+            {"SPEAK", "NO MATCH", "NEXT PAGE", "SWITCH", "NO MATCH", "NO MATCH", "NOPQRST", "UVWXYZ", "ABCDEF", "GHIJKLM"};
+    int[] wordIndex = {-1, 2, -1, -1, 0, 1, -1, -1, -1, -1};
     void WordMode(int selection) {
         switch (selection) {
             case 0 -> utterText();
             case 1 -> {selectWord(2); nextWordPrediction(NWPWords); sentencePrediction(); }
-            case 2 -> {selectWord(3); nextWordPrediction(NWPWords); sentencePrediction(); }
-            case 3 -> mode = 1;
+            case 2 -> nextPage();
+            case 3 -> {mode = 1; currentPage = 1;}
             case 4 -> {selectWord(0); nextWordPrediction(NWPWords); sentencePrediction(); }
             case 5 -> {selectWord(1); nextWordPrediction(NWPWords); sentencePrediction(); }
         }
@@ -72,9 +74,9 @@ public class TextEntryManager extends AppCompatActivity {
 
     // up gaze = 0, left gaze = 1, right gaze = 2, closed = 3, left-up gaze = 4, right-up gaze = 5
     String[] letterModeUI = {
-            "DELETE", "NOPQRST", "UVWXYZ", "SWITCH", "ABCDEF", "GHIJKLM", "NO MATCH","NO MATCH", "NO MATCH", "NO MATCH"
+            "DELETE", "NOPQRST", "UVWXYZ", "SWITCH", "ABCDEF", "GHIJKLM", "NO MATCH","NEXT PAGE", "NO MATCH", "NO MATCH"
     };
-    int[] wordIndex2 = {-1, -1, -1, -1, -1, -1, 2, 3, 0, 1};
+    int[] wordIndex2 = {-1, -1, -1, -1, -1, -1, 2, -1, 0, 1};
     void letterMode(int selection) {
         switch (selection) {
             case 0 -> { // delete blurry input or word
@@ -87,7 +89,7 @@ public class TextEntryManager extends AppCompatActivity {
             }
             case 1 -> current.addBlurryInput("2");
             case 2 -> current.addBlurryInput("3");
-            case 3 -> mode = 0;
+            case 3 -> {mode = 0; currentPage = 1;}
             case 4 -> current.addBlurryInput("0");
             case 5 -> current.addBlurryInput("1");
         }
@@ -127,6 +129,7 @@ public class TextEntryManager extends AppCompatActivity {
         Log.d("TextGeneration", "Context updated: " + newContext);
         context = newContext;
         contextWordPrediction(50);
+        updateDisplays();
     }
 
     public KeyboardData getDisplays() {
