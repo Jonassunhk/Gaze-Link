@@ -1,4 +1,4 @@
-# eye_typing_keyboard
+# GazeLink: A Low-cost Mobile Eye-gesture Communication System with Large Language Models for People with Amyotrophic Lateral Sclerosis
 
 ## Description
 Gaze Link is a low-cost eye-gesture communication system intended for People with Amyotrophic lateral sclerosis (PALS) who develop severe motor and verbal disabilities. The application includes a text-entry keyboard that allows PALS to type grammatical sentences independently and other functionalities for calibration, settings adjustments, and data analysis. The system uses Large Language Models (LLMs) on the cloud for context-aware sentence generation and word prediction tools for a higher text-entry rate. The application is currently in alpha testing phase.
