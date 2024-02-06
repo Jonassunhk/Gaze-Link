@@ -6,5 +6,6 @@ Gaze Link is a low-cost eye-gesture communication system intended for People wit
 ## Useful Links
 
 User Manual: https://docs.google.com/document/d/1Fz6OAjbDfIS6dwi93-o9HvRD_0RV0ealPnbN5Y_3fEQ/edit
+
 Youtube Channel: https://www.youtube.com/@GazeLink-ru7em
 
