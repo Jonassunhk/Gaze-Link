@@ -24,9 +24,9 @@ import retrofit2.http.Headers;
 import retrofit2.http.POST;
 
 public class OpenAIManager extends AppCompatActivity {
-    private static final String OPENAI_API_KEY = "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";
-    HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-    OpenAIService service;
+        private static final String OPENAI_API_KEY = ""; // do not push to github, openAI key
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+        OpenAIService service;
     Context mContext;
 
     public void initialize(Context context) {

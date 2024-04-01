@@ -18,29 +18,43 @@ import java.util.ArrayList;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-public class EyeDetection extends AppCompatActivity {
-    public Context mContext;
+public class EyeDetection {
+    UserDataManager userDataManager;
     public Mat finalMat, opening;
-    Integer[] tags = new Integer[]{1, 2, 0, 3, 4, 6, 7};
-    int tempNum = 7;
-    Mat[] leftTemplates = new Mat[tempNum];
-    Mat[] rightTemplates = new Mat[tempNum];
+    Integer[] tags = new Integer[]{0, 1, 2, 3, 6, 7}; // matches the calibration order to the gaze data order
+    Mat[] leftTemplates, rightTemplates;
     public float thresholdValue = 18f;
     public float sensitivity = 0.015f;
     static int IMAGE_WIDTH = 40, IMAGE_HEIGHT = 14;
 
-    public void loadCalibratedTemplates(boolean left, Bitmap[] bm) {
-        Mat[] templates;
+    public void updateCalibrationTemplates(Context applicationContext, boolean left) {
+        userDataManager = (UserDataManager) applicationContext;
+        Mat[] templates = new Mat[userDataManager.calibrationTemplateNum];
+        Bitmap[] bm;
         if (left) {
-            templates = leftTemplates;
+            bm = userDataManager.getLeftCalibrationData();
         } else {
-            templates = rightTemplates;
+            bm = userDataManager.getRightCalibrationData();
         }
-        for (int i = 0; i < tempNum; i++) {
+        if (bm == null) { // calibration incomplete
+            Log.d("CalibrationInterface", "Calibration Missing");
+            return;
+        }
+        for (int i = 0; i < userDataManager.calibrationTemplateNum; i++) {
+            if (bm[i] == null) {
+                Log.d("CalibrationInterface", "Skipped calibration number = " + i);
+                continue; // one frame incomplete, skip
+            }
+            Log.d("CalibrationInterface", "Recorded = " + i);
             templates[i] = new Mat(bm[i].getWidth(), bm[i].getHeight(), CvType.CV_8UC4);
             Utils.bitmapToMat(bm[i], templates[i]);
             Imgproc.cvtColor(templates[i], templates[i], Imgproc.COLOR_BGR2GRAY);
             Imgproc.resize(templates[i], templates[i], new Size(IMAGE_WIDTH,IMAGE_HEIGHT), Imgproc.INTER_AREA);
+        }
+        if (left) {
+            leftTemplates = templates;
+        } else {
+            rightTemplates = templates;
         }
     }
 
@@ -61,9 +75,9 @@ public class EyeDetection extends AppCompatActivity {
         return sum;
     }
     public double[] runEyeModel(DetectionOutput detectionOutput, Mat eyeROI, int type) {
-
+        Log.d("GestureDetection", "Here!");
         Mat[] compareTemplates;
-        double[] templateError = new double[tempNum];
+        double[] templateError = new double[userDataManager.calibrationTemplateNum];
 
         // resize the eyeROI to the correct image size/format
         eyeROI.convertTo(eyeROI, CvType.CV_8UC4);
@@ -80,7 +94,7 @@ public class EyeDetection extends AppCompatActivity {
         // MSE
         double minError = 10000000;
         int index = 0;
-        for (int i = 0; i < tempNum; i++) {
+        for (int i = 0; i < userDataManager.calibrationTemplateNum; i++) {
             double sum = mse(compareTemplates[i], tensorMat, IMAGE_HEIGHT, IMAGE_WIDTH); // - DETECT_BIAS[tags[i]];
             templateError[i] = sum;
             if (sum < minError) {

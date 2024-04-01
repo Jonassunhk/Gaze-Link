@@ -18,14 +18,14 @@
         android:visibility="visible">
 
         <Button
-            android:id="@+id/clinicianModeButton"
+            android:id="@+id/devModeButton"
             style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="#A56C6C"
             android:fontFamily="sans-serif-medium"
-            android:text="CLINICIAN MODE"
+            android:text="SET UP"
             android:textStyle="bold"
             android:typeface="normal" />
 
@@ -37,19 +37,7 @@
             android:layout_weight="1"
             android:background="#A56C6C"
             android:fontFamily="sans-serif-medium"
-            android:text="Text-entry Mode"
-            android:textStyle="bold"
-            android:typeface="normal" />
-
-        <Button
-            android:id="@+id/devModeButton"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="#A56C6C"
-            android:fontFamily="sans-serif-medium"
-            android:text="SETTING MODE"
+            android:text="TEXT-ENTRY"
             android:textStyle="bold"
             android:typeface="normal" />
 
@@ -61,9 +49,22 @@
             android:layout_weight="1"
             android:background="#A56C6C"
             android:fontFamily="sans-serif-medium"
-            android:text="Calibrate"
+            android:text="CALIBRATION"
             android:textStyle="bold"
             android:typeface="normal" />
+
+        <Button
+            android:id="@+id/clinicianModeButton"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="#A56C6C"
+            android:fontFamily="sans-serif-medium"
+            android:text="DATA"
+            android:textStyle="bold"
+            android:typeface="normal" />
+
     </LinearLayout>
 
     <LinearLayout

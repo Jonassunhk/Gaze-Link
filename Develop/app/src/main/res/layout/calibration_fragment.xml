@@ -5,28 +5,14 @@
     android:id="@+id/calibrationModeFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/columbia_blue"
-    tools:context="com.demo.opencv.calibration">
-
-    <TextView
-        android:id="@+id/calibrationInstruction"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="CALIBRATION"
-        android:textColor="@color/purple_500"
-        android:textSize="35sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.034"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.099" />
+    android:background="@color/ghost_blue"
+    tools:context="com.demo.opencv.calibration_display">
 
     <ImageView
-        android:id="@+id/calibrationRight"
+        android:id="@+id/calibrationLeft"
         android:layout_width="128dp"
         android:layout_height="75dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.31"
@@ -36,9 +22,10 @@
         tools:src="@tools:sample/avatars" />
 
     <ImageView
-        android:id="@+id/calibrationStraight"
+        android:id="@+id/calibrationRight"
         android:layout_width="128dp"
         android:layout_height="75dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.586"
@@ -51,6 +38,7 @@
         android:id="@+id/calibrationUp"
         android:layout_width="128dp"
         android:layout_height="75dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.858"
@@ -60,9 +48,10 @@
         tools:src="@tools:sample/avatars" />
 
     <ImageView
-        android:id="@+id/calibrationDown"
+        android:id="@+id/calibrationRightUp"
         android:layout_width="128dp"
         android:layout_height="75dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.31"
@@ -75,6 +64,7 @@
         android:id="@+id/calibrationLeftUp"
         android:layout_width="128dp"
         android:layout_height="75dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.028"
@@ -84,22 +74,11 @@
         tools:src="@tools:sample/avatars" />
 
     <ImageView
-        android:id="@+id/calibrationRightUp"
-        android:layout_width="128dp"
-        android:layout_height="75dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.586"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.854"
-        tools:src="@tools:sample/avatars" />
-
-    <ImageView
-        android:id="@+id/calibrationLeft"
+        android:id="@+id/calibrationStraight"
         android:layout_width="128dp"
         android:layout_height="75dp"
         android:layout_marginStart="16dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -112,12 +91,13 @@
         android:layout_height="wrap_content"
         android:background="#DF4242"
         android:text="CONTINUE"
+        android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.972"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.095" />
+        app:layout_constraintVertical_bias="0.938" />
 
     <Button
         android:id="@+id/switchEyesButton"
@@ -125,11 +105,84 @@
         android:layout_height="wrap_content"
         android:background="#FFFFFF"
         android:text="SWITCH EYES"
+        android:textStyle="bold"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.731"
+        app:layout_constraintHorizontal_bias="0.754"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.095" />
+        app:layout_constraintVertical_bias="0.934" />
+
+    <TextView
+        android:id="@+id/CalibrationDescription"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="15dp"
+        android:layout_marginEnd="30dp"
+        android:fontFamily="sans-serif"
+        android:text="Calibrate your eyes for Gaze Link to recognize your eye gestures. Make sure your eyes are on the same level as the front-end camera (see picture below). Press continue to start."
+        android:textAlignment="textStart"
+        android:textColor="@color/purple_500"
+        android:textSize="16sp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.242" />
+
+    <ImageView
+        android:id="@+id/imageView14"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:src="@drawable/baseline_control_camera_24"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.023"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.045" />
+
+    <TextView
+        android:id="@+id/calibrationInstruction"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EYE CALIBRATION"
+        android:textColor="@color/metal_green"
+        android:textSize="35sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.176"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.038" />
+
+    <ImageView
+        android:id="@+id/imageView15"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@color/columbia_blue"
+        android:src="@drawable/baseline_close_24"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.988"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.026" />
+
+    <ImageView
+        android:id="@+id/CalibrationImage"
+        android:layout_width="386dp"
+        android:layout_height="174dp"
+        android:src="@drawable/calibration_image"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.888" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

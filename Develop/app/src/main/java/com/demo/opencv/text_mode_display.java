@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -35,16 +36,16 @@ public class text_mode_display extends Fragment {
     ImageButton recordButton;
     final int[] keyboardInputMat = {-1, 1, 2, 0, -1, 3, 4, 5}; // convert gaze type into keyboard input
     List<TextView> keyboardOptions = new ArrayList<>();
+    List<TextView> finishedScreenTexts = new ArrayList<>();
+    List<ImageView> finishedScreenImages = new ArrayList<>();
     private boolean useFirstLayout = false;
+    private boolean finishedScreenDisplayed = false;
     public text_mode_display() {
         // Required empty public constructor
     }
 
-    public static text_mode_display newInstance(String context) {
+    public static text_mode_display newInstance() {
         text_mode_display fragment = new text_mode_display();
-        Bundle args = new Bundle();
-        args.putString("Context", context);
-        fragment.setArguments(args);
         return fragment;
     }
 
@@ -55,8 +56,7 @@ public class text_mode_display extends Fragment {
     }
 
     public interface TextModeListener {
-        void onSettingValueChanged(String valueName, String value);
-        void onGazeButtonClicked(int input);
+        void onTextModeButtonClicked(int input);
         void recordButtonClicked();
     }
     TextModeListener textModeListener;
@@ -102,8 +102,36 @@ public class text_mode_display extends Fragment {
         }
     }
 
+    private void toggleFinishedScreen(boolean state) {
+        int visibility;
+        if (state) {
+            visibility = View.VISIBLE;
+        } else {
+            visibility = View.INVISIBLE;
+        }
+        for (TextView text: finishedScreenTexts) {
+            text.setVisibility(visibility);
+        }
+        for (ImageView image: finishedScreenImages) {
+            image.setVisibility(visibility);
+        }
+    }
+
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+
+        UserDataManager userDataManager = (UserDataManager) requireActivity().getApplication();
+
+        finishedScreenTexts.add(mActivity.findViewById(R.id.speakButton));
+        finishedScreenTexts.add(mActivity.findViewById(R.id.uploadButton));
+        finishedScreenTexts.add(mActivity.findViewById(R.id.backButton));
+        finishedScreenTexts.add(mActivity.findViewById(R.id.finishBox));
+        finishedScreenTexts.add(mActivity.findViewById(R.id.darkenLayer));
+
+        finishedScreenImages.add(mActivity.findViewById(R.id.speakButtonImage));
+        finishedScreenImages.add(mActivity.findViewById(R.id.uploadButtonImage));
+        finishedScreenImages.add(mActivity.findViewById(R.id.backButtonImage));
+        toggleFinishedScreen(false); // closed finished screen
 
         if (useFirstLayout) {
             textInput = mActivity.findViewById(R.id.textInput);
@@ -132,17 +160,22 @@ public class text_mode_display extends Fragment {
             recordButton = mActivity.findViewById(R.id.recordButton);
             recordButton.setOnClickListener(v -> textModeListener.recordButtonClicked());
         }
-        for (int i = 0; i < 6; i++) {
+
+        // add click listeners for finished screen
+        finishedScreenTexts.get(0).setOnClickListener(v -> textModeListener.onTextModeButtonClicked(1));
+        finishedScreenTexts.get(1).setOnClickListener(v -> textModeListener.onTextModeButtonClicked(2));
+        finishedScreenTexts.get(2).setOnClickListener(v -> textModeListener.onTextModeButtonClicked(5));
+
+        for (int i = 0; i < 6; i++) { // add click listeners for the eye gesture buttons
             int finalI = i;
-            keyboardOptions.get(i).setOnClickListener(v -> textModeListener.onGazeButtonClicked(finalI));
+            keyboardOptions.get(i).setOnClickListener(v -> textModeListener.onTextModeButtonClicked(finalI));
         }
 
-        assert getArguments() != null;
-        String context = getArguments().getString("Context");
+        String context = userDataManager.getTextEntryContext();
         contextBox.setText(context);
         contextBox.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                textModeListener.onSettingValueChanged("Context", v.getText().toString());
+                userDataManager.setTextEntryContext(v.getText().toString());
             }
             return false;
         });
@@ -154,7 +187,13 @@ public class text_mode_display extends Fragment {
                 viewModel.getSelectedItem().observe(requireActivity(), item -> {
 
                     KeyboardData keyboardData = item.KeyboardData;
+
                     if (keyboardData != null) {
+                        if (finishedScreenDisplayed != keyboardData.finished) { // check if finished screen should be displayed
+                            finishedScreenTexts.get(3).setText(keyboardData.sentence);
+                            finishedScreenDisplayed = keyboardData.finished;
+                            toggleFinishedScreen(keyboardData.finished);
+                        }
                         for (int i = 0; i < keyboardOptions.size(); i++) {
                             if (keyboardData.Options.length > i) {
                                 keyboardOptions.get(i).setText(keyboardData.Options[i]); // display letter labels for keyboard
@@ -174,7 +213,6 @@ public class text_mode_display extends Fragment {
                     }
 
                     if (!useFirstLayout && item.DetectionOutput != null) {
-
                         //int detection = keyboardInputMat[item.DetectionOutput.AnalyzedData.GazeType]; // the determination for that frame
                         int actual = keyboardInputMat[item.DetectionOutput.gestureOutput]; // the actual input by the user
 

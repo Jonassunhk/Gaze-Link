@@ -26,55 +26,49 @@ import java.util.List;
 import java.util.Objects;
 
 
-public class Model extends AppCompatActivity implements ContractInterface.Model {
+public class Model implements ContractInterface.Model {
+    Context mContext, ApplicationContext;
+    UserDataManager userDataManager;
     private final EyeDetection detector = new EyeDetection(); // create eye detection object to analyze user input
     private final GoogleFaceDetector faceDetector = new GoogleFaceDetector();
     DetectionOutput detectionOutput = new DetectionOutput();
-    UserDataManager userDataManager = new UserDataManager();
     private ArrayList<String> prevInputs;
     int gazeNum = 8; // number of types of gaze inputs
-    int tempNum = 7; // number of gazes
     int currentGaze = -1;
     int length = 0;
     int[] gazeCount;
     static int IMAGE_WIDTH = 44, IMAGE_HEIGHT = 18;
-    String[] leftEyeFileNames = {"left_left", "left_right", "left_straight", "left_up", "left_down", "left_left_up", "left_right_up"};
-    String[] rightEyeFileNames = {"right_left", "right_right", "right_straight", "right_up", "right_down", "right_left_up", "right_right_up"};
-    public Bitmap[] leftCalibrationData, rightCalibrationData;
     Integer[] tags = new Integer[]{1, 2, 0, 3, 4, 6, 7}; // should be flipped because of perspective
     Point[] corners = new Point[4]; // left, top, right, down
-    double[] leftTemplateError = new double[tempNum];
-    double[] rightTemplateError = new double[tempNum];
-    public HashMap<String, String> settings = new HashMap<>();
-    String[] storedSettingNames = {"Threshold", "Sensitivity", "TextEntryMode"};
+    double[] leftTemplateError, rightTemplateError;
 
     @Override
-    public void initialize(Context context) throws IOException { // initialize models, libraries, and datastore
+    public void initialize(Context context, Context applicationContext) throws IOException { // initialize models, libraries, and datastore
+
+        mContext = context;
+        ApplicationContext = applicationContext;
+        userDataManager = (UserDataManager) applicationContext;
+
+        leftTemplateError = new double[userDataManager.calibrationTemplateNum];
+        rightTemplateError = new double[userDataManager.calibrationTemplateNum];
 
         if (!OpenCVLoader.initDebug()) { // check and initialize OpenCV
             Log.d("OpenCVDebug", "cannot init debug");
         } else {
             Log.d("OpenCVDebug", "success");
         }
-        detector.mContext = context;
+        updateCalibrationTemplates();
         prevInputs = new ArrayList<>();
         gazeCount = new int[gazeNum]; // change based on how many detections there are
 
         faceDetector.initialize(); // initialize Google ML Kit
-        userDataManager.initialize(context); // initialize settings
 
-        // settings
-        getSettingData(); // get setting data. Will set to default if no value found
-        leftCalibrationData = userDataManager.getCalibrationFiles(context, leftEyeFileNames);
-        rightCalibrationData = userDataManager.getCalibrationFiles(context, rightEyeFileNames);
+    }
 
-        if (leftCalibrationData == null || rightCalibrationData == null) {
-            Log.d("Calibration", "calibration incomplete");
-        } else {
-            Log.d("Calibration", "calibration data found, complete");
-            detector.loadCalibratedTemplates(true, leftCalibrationData);
-            detector.loadCalibratedTemplates(false, rightCalibrationData);
-        }
+    @Override
+    public void updateCalibrationTemplates() {
+        detector.updateCalibrationTemplates(ApplicationContext,true);
+        detector.updateCalibrationTemplates(ApplicationContext, false);
     }
 
     private boolean gazingLeft(GazeData gaze) {
@@ -83,17 +77,6 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
 
     private boolean gazingRight(GazeData gaze) {
         return gaze.GazeType == 2 || gaze.GazeType == 7;
-    }
-
-    @Override
-    public void setCalibrationTemplates(Context context, Bitmap[] leftEye, Bitmap[] rightEye) { // import calibration images
-        Log.d("Calibration", "Setting calibration templates");
-        leftCalibrationData = leftEye;
-        rightCalibrationData = rightEye;
-        userDataManager.storeCalibrationFiles(context, leftEyeFileNames, leftEye); // data store
-        userDataManager.storeCalibrationFiles(context, rightEyeFileNames, rightEye); // data store
-        detector.loadCalibratedTemplates(true, leftEye);
-        detector.loadCalibratedTemplates(false, rightEye);
     }
 
     @Override
@@ -125,7 +108,7 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
             } else { // combine the two losses
                 int index = -1;
                 double minError = 1000000f;
-                for (int i = 0; i < tempNum; i++) {
+                for (int i = 0; i < userDataManager.calibrationTemplateNum; i++) {
                     double error = leftTemplateError[i] + rightTemplateError[i];
                     if (error < minError) {
                         index = i;
@@ -278,7 +261,7 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
                     Imgproc.cvtColor(leftEye, leftEye, Imgproc.COLOR_RGB2GRAY);
                     //Imgproc.equalizeHist(leftEye, leftEye);
 
-                    if (leftCalibrationData != null) { // if there are calibration images
+                    if (userDataManager.checkCalibrationFiles()) { // true = calibration complete
                         leftTemplateError = detector.runEyeModel(detectionOutput, leftEye, 0);
                     }
                 }
@@ -298,7 +281,7 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
                     Imgproc.cvtColor(rightEye, rightEye, Imgproc.COLOR_RGB2GRAY);
                     //Imgproc.equalizeHist(rightEye, rightEye);
 
-                    if (rightCalibrationData != null) { // if there are calibration images
+                    if (userDataManager.checkCalibrationFiles()) { // if there are calibration images
                         rightTemplateError = detector.runEyeModel(detectionOutput, rightEye, 1);
                     }
                 }
@@ -314,44 +297,5 @@ public class Model extends AppCompatActivity implements ContractInterface.Model 
         detectionOutput.leftNIC = getIrisCenter(leftEye);
         Log.d("IrisDetection", "Normalized x = " + detectionOutput.leftNIC.x + ", y = " + detectionOutput.leftNIC.y);
         return detectionOutput;
-    }
-
-    @Override
-    public Bitmap[] getLeftCalibrationData() {
-        return leftCalibrationData;
-    }
-
-    @Override
-    public Bitmap[] getRightCalibrationData() {
-        return rightCalibrationData;
-    }
-
-    @Override
-    public void updateSettings(String valueName, String value) { // checks for change and stores the values
-
-        settings.put(valueName, value);
-        for (String i: storedSettingNames) { // check if value should be a stored value
-            if (Objects.equals(i, valueName)) {
-                userDataManager.setString(valueName, value);
-            }
-        }
-
-        if (Objects.equals(valueName, "Threshold")) {
-            detector.thresholdValue = Integer.parseInt(value);
-        } else if (Objects.equals(valueName, "Sensitivity")) {
-            detector.sensitivity = (float) Integer.parseInt(value) / 1000;
-        }
-    }
-
-    @Override
-    public HashMap<String, String> getSettings() {
-        return settings;
-    }
-
-    private void getSettingData() {
-        for (String i: storedSettingNames) {
-            settings.put(i, userDataManager.getString(i));
-        }
-        settings.put("Context", "");
     }
 }

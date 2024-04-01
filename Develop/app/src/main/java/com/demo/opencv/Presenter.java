@@ -1,12 +1,10 @@
 package com.demo.opencv;
 
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.ToneGenerator;
 import android.util.Log;
-
-import androidx.appcompat.app.AppCompatActivity;
-
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -14,30 +12,22 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Objects;
 
-public class Presenter extends AppCompatActivity implements ContractInterface.Presenter, AudioManager.AudioManagerListener {
-
+public class Presenter implements ContractInterface.Presenter, AudioManager.AudioManagerListener {
     Context mContext;
+    UserDataManager userDataManager;
     public boolean presenterBusy = false;
-    public String mode = ""; // Calibration, Text, Dev, Clinician
-    private boolean first = true;
+    public String mode = ""; // Calibration, Text, Dev, Clinician, Social Media
     boolean recording = false;
-    private ContractInterface.View mainView; // creating object of View Interface
+    private final ContractInterface.View mainView; // creating object of View Interface
     private final ContractInterface.Model model; // creating object of Model Interface
     private final KeyboardManager keyboardManager = new KeyboardManager();
     private final TextEntryManager textEntryManager = new TextEntryManager();
+    private final SocialMediaManager socialMediaManager = new SocialMediaManager();
     AppLiveData appliveData = new AppLiveData();
     OpenAIManager OpenAIManager = new OpenAIManager();
     AudioManager audioManager = new AudioManager();
-    int tempNum = 7;
-    int textEntryMode = 2;
-    int calibrationState = -1; // -1 = idle, 0 - tempNum = during calibration
-    Bitmap[] leftCalibrationData = new Bitmap[tempNum];
-    Bitmap[] rightCalibrationData = new Bitmap[tempNum];
-    String[] calibrationMessages = {"Look left and down", "Look right and down", "Look straight", "Look up", "Look down", "Look left and up", "Look right and up"};
-    private final String[] reference = {"Straight", "Left", "Right", "Up", "Down", "Closed", "Left Up", "Right Up"};
     public ClinicalData clinicalData = new ClinicalData();
     ToneGenerator toneGenerator;
     // instantiating the objects of View and Model Interface
@@ -46,12 +36,6 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
         this.model = model;
     }
     Mat prevMat;
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mainView = null;
-    }
 
     private Bitmap matToBitmap(Mat mat) {
         Bitmap bm = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
@@ -64,27 +48,23 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
 
         Log.d("MVPPresenter", "Model Initialized");
         this.mContext = mContext;
+        userDataManager = (UserDataManager) applicationContext;
 
-        model.initialize(mContext); // MVP model initialization
+        model.initialize(mContext, applicationContext); // MVP model initialization
+
         keyboardManager.initialize(); // keyboard initialization
         textEntryManager.initialize(mContext); // text prediction initialization
-        if (model.getSettings().get("Context") != null) {
-            textEntryManager.updateContext(model.getSettings().get("Context"));
+        socialMediaManager.initialize(mContext, applicationContext); // social media initialization
+        //socialMediaManager.postTweet(); // testing
+
+        if (userDataManager.getTextEntryContext() != null) {
+            textEntryManager.updateContext(userDataManager.getTextEntryContext());
         }
-        if (model.getSettings().get("TextEntryMode") != null) {
-            textEntryMode = Integer.parseInt(Objects.requireNonNull(model.getSettings().get("TextEntryMode")));
-            textEntryManager.LLMEnabled = (textEntryMode == 2);
-        }
+        textEntryManager.LLMEnabled = (userDataManager.getTextEntryMode() == 2);
 
         clinicalData = new ClinicalData();
 
-        // calibration
-        leftCalibrationData = model.getLeftCalibrationData(); // get original calibration data
-        rightCalibrationData = model.getRightCalibrationData();
-        // if there is no calibration data
-        if (leftCalibrationData == null) { leftCalibrationData = new Bitmap[tempNum]; }
-        if (rightCalibrationData == null) { rightCalibrationData = new Bitmap[tempNum]; }
-        appliveData.calibrationInstruction = "";
+        appliveData.calibrationInstruction = "Eye Calibration";
 
         toneGenerator = new ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 100);
 
@@ -100,40 +80,41 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
 
     @Override
     public void updateCalibration() {
-        if (calibrationState == -1) { // restart calibration
-            Log.d("Calibration", "Starting calibration");
-            calibrationState = 0;
-            audioManager.speakText(calibrationMessages[calibrationState]);
-            leftCalibrationData[0] = null;
-            rightCalibrationData[0] = null;
-            appliveData.calibrationInstruction = calibrationMessages[0];
-            clinicalData.leftNICX.clear();
-            clinicalData.leftNICY.clear();
+        String[] calibrationMessages = {"Look straight", "Look right and down", "Look left and down", "Look up", "Look left and up", "Look right and up"};
 
-        } else { // during calibration
+        int calibrationState = userDataManager.getCalibrationState();
+
+        if (calibrationState == -1) { // begin calibration
+            audioManager.speakText(calibrationMessages[0]);
+            appliveData.calibrationInstruction = calibrationMessages[0];
+            calibrationState = 0;
+
+        } else if (calibrationState == userDataManager.calibrationTemplateNum) { // restart calibration
+            appliveData.calibrationInstruction = "EYE CALIBRATION";
+            calibrationState = -1;
+
+        } else if (calibrationState >= 0) { // during calibration
             Mat[] eyeMats = appliveData.DetectionOutput.testingMats;
             if (eyeMats[0] != null && eyeMats[1] != null) { // the images are collectible
-                Log.d("Calibration", "Recorded successfully");
-                leftCalibrationData[calibrationState] = matToBitmap(eyeMats[0]);
-                rightCalibrationData[calibrationState] = matToBitmap(eyeMats[1]);
-                calibrationState += 1; // next state
+                Log.d("CalibrationInterface", "Recorded successfully");
+                userDataManager.setLeftCalibrationData(matToBitmap(eyeMats[0]), calibrationState); // collect left frame
+                userDataManager.setRightCalibrationData(matToBitmap(eyeMats[1]), calibrationState); // collect right frame
+                calibrationState += 1;
 
-                if (calibrationState == tempNum) { // finished calibration
-                    appliveData.calibrationInstruction = "Calibration Finished!";
-                    Log.d("Calibration", "Finished calibration");
-                    calibrationState = -1;
-                    model.setCalibrationTemplates(mContext, leftCalibrationData, rightCalibrationData);
+                if (calibrationState == userDataManager.calibrationTemplateNum) { // finished calibration
+                    model.updateCalibrationTemplates();
+                    appliveData.calibrationInstruction = "CALIBRATION FINISHED!";
+                    Log.d("CalibrationInterface", "Finished calibration");
                 } else { // continue
                     audioManager.speakText(calibrationMessages[calibrationState]);
-                    leftCalibrationData[calibrationState] = null;
-                    rightCalibrationData[calibrationState] = null;
                     appliveData.calibrationInstruction = calibrationMessages[calibrationState];
                 }
-
             } else {
                 Log.d("Calibration", "Detection failed, please try again");
             }
         }
+        userDataManager.setCalibrationState(calibrationState);
+        appliveData.calibrationState = calibrationState;
     }
 
     @Override
@@ -150,7 +131,7 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     public void setMode(String value) {
         mode = value;
         if (Objects.equals(mode, "Text")) {
-            if (textEntryMode == 0) {
+            if (userDataManager.getTextEntryMode() == 0) {
                 KeyboardData keyboardData = keyboardManager.getDisplays();
                 appliveData.setKeyboardDisplays(keyboardData);
             } else {
@@ -165,29 +146,12 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     public String getMode() { return mode; }
 
     @Override
-    public void updateSettings(String valueName, String value) {
-        if (Objects.equals(valueName, "TextEntryMode")) {
-            if (Objects.equals(value, "0")) {
-                Log.d("Presenter", "Switched to letter-by-letter mode");
-            } else if (Objects.equals(value, "1")) {
-                Log.d("Presenter", "Switched to ambiguous keyboard only mode");
-                textEntryManager.LLMEnabled = false;
-            } else if (Objects.equals(value, "2")) {
-                Log.d("Presenter", "Switched to ambiguous keyboard + LLM mode");
-                textEntryManager.LLMEnabled = true;
-            }
-            textEntryMode = Integer.parseInt(value);
+    public void onGazeButtonClicked(int input) { // when the user clicks a gaze button (for both social media and text mode)
+        if (Objects.equals(mode, "Text")) {
+            textEntryManager.manageUserInput(input, false);
+        } else if (Objects.equals(mode, "Social Media")) {
+            socialMediaManager.manageUserInput(input, false);
         }
-        if (Objects.equals(valueName, "Context")) {
-            Log.d("TextGeneration", "Context changed to " + value);
-            textEntryManager.updateContext(value);
-        }
-        model.updateSettings(valueName, value);
-    }
-
-    @Override
-    public void onGazeButtonClicked(int input) {
-        textEntryManager.manageUserInput(input, false);
     }
 
     @Override
@@ -206,43 +170,27 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
     public void onAudioUpdated(String key, String value) {
         recording = false;
         if (Objects.equals(key, "Context")) {
-            Log.d("AudioManager", "Context received by presenter" + value);
-            updateSettings("Context", value);
+            Log.d("AudioManager", "Context received by presenter: " + value);
+            userDataManager.setTextEntryContext(value);
+            textEntryManager.updateContext(value);
         }
     }
 
     @Override
-    public HashMap<String, String> getSettings() {
-        return model.getSettings();
-    }
+    public void onDestroy() {
 
-    private boolean equal(Mat a, Mat b) {
-        if (a.size().equals(b.size())) {
-            if (a.channels() == b.channels()) {
-                Mat diff = new Mat();
-                Core.subtract(a, b, diff);
-                Imgproc.cvtColor(diff, diff, Imgproc.COLOR_RGB2GRAY);
-                return Core.countNonZero(diff) == 0;
-            }
-        }
-        return false;
     }
 
     @Override
     public void onFrame(Mat rgbMat) {
         presenterBusy = true;
-//        if (first) {
-//            first = false;
-//        } else if (equal(rgbMat, prevMat)) { // prevent identical frames from being processed
-//            return;
-//        }
         prevMat = rgbMat;
        // Log.d("MVPPresenter", "Frame loaded");
         DetectionOutput detectionOutput = model.classifyGaze(rgbMat); // get detection output from model
      //   Log.d("MVPPresenter", "Frame processed");
 
         if (detectionOutput.AnalyzedData != null) { // when the input is valid
-            if (Objects.equals(mode, "Text") || Objects.equals(mode, "Dev")) { // not calibrating or in clinician mode, process the input
+            if (Objects.equals(mode, "Text") || Objects.equals(mode, "Dev") || Objects.equals(mode, "Social Media")) { // not calibrating or in clinician mode, process the input
                 int gazeType = detectionOutput.gestureOutput;
 
                 if (gazeType != 0) { // gaze input is meaningful
@@ -250,34 +198,52 @@ public class Presenter extends AppCompatActivity implements ContractInterface.Pr
                     toneGenerator.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
 
                     if (Objects.equals(mode, "Text")) { // only do text input in text mode
-
-                        String gazeLogInput = Calendar.getInstance().getTime() + ": " + reference[gazeType];
+                        String gazeLogInput = Calendar.getInstance().getTime() + ": " + userDataManager.gazeIndexToString(gazeType);
                         clinicalData.gazeLog.add(gazeLogInput);
 
-                        if (textEntryMode == 0) { // letter-by-letter mode
+                        if (userDataManager.getTextEntryMode() == 0) { // letter-by-letter mode
                             keyboardManager.processInput(gazeType);
                             KeyboardData keyboardData = keyboardManager.getDisplays();
                             appliveData.setKeyboardDisplays(keyboardData);
                         } else { // other two modes
+                            textEntryManager.LLMEnabled = (userDataManager.getTextEntryMode() == 2);
                             textEntryManager.manageUserInput(gazeType, true);
-
                         }
+                    } else if (Objects.equals(mode, "Social Media")) { // social media mode
+                        socialMediaManager.manageUserInput(gazeType, true);
                     }
                 }
-            } else if (calibrationState != -1 && Objects.equals(mode, "Calibration")) { // when the user is calibrating
-                clinicalData.leftNICX.add((float)detectionOutput.leftNIC.x);
-                clinicalData.leftNICY.add((float)detectionOutput.leftNIC.y);
+            } else if (userDataManager.getCalibrationState() != -1 && Objects.equals(mode, "Calibration")) { // when the user is calibrating
+                //clinicalData.leftNICX.add((float)detectionOutput.leftNIC.x);
+                //clinicalData.leftNICY.add((float)detectionOutput.leftNIC.y);
             }
         }
+        if (textEntryManager.openSocialMedia) { // action to open social media interface
+            textEntryManager.openSocialMedia = false;
+            socialMediaManager.addSentence(textEntryManager.getLLMSentence()); // add the sentence from the text entry manager
+            mainView.openSocialMedia();
+        }
+        if (socialMediaManager.closeSocialMedia) { // action to close social media interface
+            socialMediaManager.closeSocialMedia = false;
+            mainView.openTextEntry();
+        }
+
+        // setting the app live data for the fragment displays
         textEntryManager.updateDisplays();
         KeyboardData keyboardData = textEntryManager.getDisplays();
-        appliveData.setKeyboardDisplays(keyboardData);
+        appliveData.setKeyboardDisplays(keyboardData); // update text entry information
+
+        socialMediaManager.updateCameraFrame(rgbMat); // update camera
+        socialMediaManager.updateDisplays();
+        SocialMediaData socialMediaData = socialMediaManager.getDisplays();
+        appliveData.setSocialMediaData(socialMediaData); // update social media information
 
         appliveData.isRecording = recording;
         appliveData.setDetectionOutput(detectionOutput);
-        appliveData.leftTemplates = leftCalibrationData; // templates shown in calibration screen
-        appliveData.rightTemplates = rightCalibrationData;
+        appliveData.leftTemplates = userDataManager.getLeftCalibrationData(); // templates shown in calibration screen
+        appliveData.rightTemplates = userDataManager.getRightCalibrationData();
         mainView.updateLiveData(appliveData); // display the gaze data and testing mats
+
         presenterBusy = false;
     }
 }

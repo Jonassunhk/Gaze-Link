@@ -1,6 +1,7 @@
 package com.demo.opencv;
 
 public class KeyboardData {
+    boolean finished; // checks if the user finished the text entry
     String[] Options;
     String TextInput;
     String context;

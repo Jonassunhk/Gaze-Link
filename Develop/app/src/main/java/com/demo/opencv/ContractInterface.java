@@ -11,17 +11,18 @@ import java.util.HashMap;
 public interface ContractInterface {
     interface View {
         void updateLiveData(AppLiveData appLiveData);
+        void openSocialMedia();
+        void openTextEntry();
+        void openSettings();
+        void openClinician();
+        void openCalibration();
     }
 
     interface Model {
         void analyzeGazeOutput(); // method that runs with new user gaze input
-        void initialize(Context context) throws IOException; // method to initialize models in the database (OpenCV, TensorFlow Lite, ChatGPT, etc.)
-        void setCalibrationTemplates(Context context, Bitmap[] leftEye, Bitmap[] rightEye);
+        void initialize(Context context, Context applicationContext) throws IOException; // method to initialize models in the database (OpenCV, TensorFlow Lite, ChatGPT, etc.)
+        void updateCalibrationTemplates();
         DetectionOutput classifyGaze(Mat rgbMat); // determine gaze code with output
-        Bitmap[] getLeftCalibrationData();
-        Bitmap[] getRightCalibrationData();
-        void updateSettings(String valueName, String value);
-        HashMap<String, String> getSettings();
     }
 
     interface Presenter {
@@ -33,9 +34,7 @@ public interface ContractInterface {
         ClinicalData getClinicalData();
         void setMode(String value);
         String getMode();
-        void updateSettings(String valueName, String value);
         void onGazeButtonClicked(int input);
         void onRecordButtonClicked();
-        HashMap<String, String> getSettings();
     }
 }

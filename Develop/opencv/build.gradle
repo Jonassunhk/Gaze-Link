@@ -106,7 +106,7 @@ android {
    // buildToolsVersion "30.0.3"
 
     defaultConfig {
-        minSdkVersion 24
+        minSdkVersion 26
         targetSdkVersion 33
 
 
@@ -152,7 +152,6 @@ android {
 
     buildFeatures {
         aidl true
-        buildConfig true
     }
 
     externalNativeBuild {

@@ -17,6 +17,7 @@ import java.util.Objects;
 
 public class TextEntryManager extends AppCompatActivity {
     public boolean LLMEnabled = true;
+    public boolean openSocialMedia = false;
     List<String> wordPredictions = new ArrayList<>(); // the word predictions shown in word mode
     int wordsPerPage = 3;
     int NWPWords = 6;
@@ -47,7 +48,9 @@ public class TextEntryManager extends AppCompatActivity {
         }
 
         if (selection != -1) {
-            if (mode == 0) { // baseline text-entry, mode 0
+            if (keyboardData.finished) {
+                finishedMode(selection); // finished screen
+            } else if (mode == 0) { // baseline text-entry, mode 0
                 WordMode(selection);
             } else if (mode == 1){ // baseline text-entry, mode 1
                 letterMode(selection);
@@ -59,17 +62,26 @@ public class TextEntryManager extends AppCompatActivity {
 
     // up gaze = 0, left gaze = 1, right gaze = 2, closed = 3, left-up gaze = 4, right-up gaze = 5
     String[] wordModeUI =
-            {"SPEAK", "NO MATCH", "NEXT PAGE", "SWITCH", "NO MATCH", "NO MATCH", "NOPQRST", "UVWXYZ", "ABCDEF", "GHIJKLM"};
+            {"FINISH", "NO MATCH", "NEXT PAGE", "SWITCH", "NO MATCH", "NO MATCH", "NOPQRST", "UVWXYZ", "ABCDEF", "GHIJKLM"};
     int[] wordIndex = {-1, 2, -1, -1, 0, 1, -1, -1, -1, -1};
-    void WordMode(int selection) {
+    void WordMode(int selection) { // when the user is typing words
         switch (selection) {
-            case 0 -> utterText();
+            case 0 -> keyboardData.finished = true; // open finished page
             case 1 -> {selectWord(2); nextWordPrediction(NWPWords); sentencePrediction(); }
             case 2 -> nextPage();
             case 3 -> {mode = 1; currentPage = 1;}
             case 4 -> {selectWord(0); nextWordPrediction(NWPWords); sentencePrediction(); }
             case 5 -> {selectWord(1); nextWordPrediction(NWPWords); sentencePrediction(); }
         }
+    }
+
+    void finishedMode(int selection) { // when the user finished text entry
+        switch (selection) {
+            case 1 -> utterText(); // speak text
+            case 2 -> {openSocialMedia = true; keyboardData.finished = false;} // open social media page
+            case 5 -> {keyboardData.finished = false;}
+        }
+
     }
 
     // up gaze = 0, left gaze = 1, right gaze = 2, closed = 3, left-up gaze = 4, right-up gaze = 5
@@ -98,6 +110,10 @@ public class TextEntryManager extends AppCompatActivity {
         }
     }
 
+    String getLLMSentence() {
+        return current.Sentence;
+    }
+
     public void updateDisplays() {
 
         if (wordPredictions.size() > 0) {
@@ -122,7 +138,6 @@ public class TextEntryManager extends AppCompatActivity {
         } else {
             keyboardData.context = "Context: " + context;
         }
-
     }
 
     public void updateContext(String newContext) {

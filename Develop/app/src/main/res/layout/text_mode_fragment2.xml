@@ -334,6 +334,31 @@
         app:layout_constraintVertical_bias="0.007" />
 
     <TextView
+        android:id="@+id/closedGazeText2"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/gaze_option_bg_2"
+        android:fontFamily="sans-serif-medium"
+        android:paddingStart="15dp"
+        android:paddingTop="5dp"
+        android:textAlignment="textStart"
+        android:textAllCaps="true"
+        android:textColor="@color/black"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.12"
+        app:layout_constraintWidth_percent="0.21"
+        app:layout_constraintHorizontal_bias="0.365"
+
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.033"
+
+        tools:text="SWITCH" />
+
+    <TextView
         android:id="@+id/upGazeText2"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -355,31 +380,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.033"
         app:layout_constraintWidth_percent="0.21"
-        tools:text="DELETE" />
-
-    <TextView
-        android:id="@+id/closedGazeText2"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@drawable/gaze_option_bg_2"
-        android:fontFamily="sans-serif-medium"
-        android:paddingStart="15dp"
-        android:paddingTop="5dp"
-        android:textAlignment="textStart"
-        android:textAllCaps="true"
-        android:textColor="@color/black"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="0.12"
-        app:layout_constraintHorizontal_bias="0.365"
-
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.033"
-        app:layout_constraintWidth_percent="0.21"
-        tools:text="SWITCH" />
+        tools:text="FINISH" />
 
     <ImageView
         android:id="@+id/imageView11"
@@ -425,5 +426,172 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.996" />
+
+    <TextView
+        android:id="@+id/finishBox"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/gaze_option_bg_1"
+        android:fontFamily="sans-serif"
+        android:paddingStart="20dp"
+        android:paddingTop="50dp"
+        android:paddingEnd="20dp"
+        android:text="This is the final sentence the user will type out and process."
+        android:textAlignment="center"
+        android:textColor="@color/black"
+        android:textSize="23sp"
+        android:textStyle="bold"
+        android:translationZ="20dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.7"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.7
+" />
+
+    <TextView
+        android:id="@+id/darkenLayer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#B9305150"
+        android:translationZ="10dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="1" />
+
+    <TextView
+        android:id="@+id/speakButton"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/gaze_option_bg_2"
+        android:fontFamily="sans-serif-medium"
+        android:paddingStart="15dp"
+        android:paddingTop="7dp"
+        android:text="SPEAK"
+        android:textAlignment="textStart"
+        android:textAllCaps="true"
+        android:textColor="@color/black"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        android:translationZ="22dp"
+        android:visibility="visible"
+
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.15"
+        app:layout_constraintHorizontal_bias="0.224"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.802"
+        app:layout_constraintWidth_percent="0.28" />
+
+    <ImageView
+        android:id="@+id/speakButtonImage"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_weight="5"
+        android:contentDescription="@string/app_name"
+        android:padding="2sp"
+        android:src="@drawable/leftgaze"
+        android:translationZ="25dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.374"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.81" />
+
+    <TextView
+        android:id="@+id/uploadButton"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/gaze_option_bg_2"
+        android:fontFamily="sans-serif-medium"
+        android:paddingStart="15dp"
+        android:paddingTop="7dp"
+        android:text="UPLOAD"
+        android:textAlignment="textStart"
+        android:textAllCaps="true"
+        android:textColor="@color/black"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        android:translationZ="22dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.15"
+        app:layout_constraintHorizontal_bias="0.777"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.802"
+        app:layout_constraintWidth_percent="0.28" />
+
+    <ImageView
+        android:id="@+id/uploadButtonImage"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_weight="5"
+        android:contentDescription="@string/app_name"
+        android:padding="2sp"
+        android:src="@drawable/rightgaze"
+        android:translationZ="25dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.805"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.81" />
+
+    <TextView
+        android:id="@+id/backButton"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/gaze_option_bg_2"
+        android:fontFamily="sans-serif-medium"
+        android:paddingStart="15dp"
+        android:paddingTop="4dp"
+        android:text="BACK"
+        android:textAlignment="textStart"
+        android:textAllCaps="true"
+        android:textColor="@color/black"
+        android:textSize="23sp"
+        android:textStyle="bold"
+        android:translationZ="22dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.13"
+        app:layout_constraintHorizontal_bias="0.794"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.193"
+        app:layout_constraintWidth_percent="0.22" />
+
+    <ImageView
+        android:id="@+id/backButtonImage"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_weight="5"
+        android:contentDescription="@string/app_name"
+        android:padding="2sp"
+        android:src="@drawable/rightupgaze"
+        android:translationZ="25dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.808"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.177" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

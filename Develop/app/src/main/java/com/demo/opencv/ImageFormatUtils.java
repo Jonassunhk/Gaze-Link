@@ -1,17 +1,21 @@
 package com.demo.opencv;
 
-import android.annotation.TargetApi;
+import android.graphics.Bitmap;
 import android.media.Image;
-import android.os.Build;
 
+import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import android.content.Context;
 
 
-public class Yuv420 {
+public class ImageFormatUtils {
 
     // 复制uv通道数据
     private static void copy(ByteBuffer data, ByteBuffer uv, int yl) {
@@ -41,11 +45,6 @@ public class Yuv420 {
     }
 
     public static Mat yuv420(Image image) {
-        // yuv420图片有三个通道，按顺序下来分别对应YUV
-        // 转换需要把三个通道的数据按顺序合并在一个数组里，
-        // 即全部Y，随后全部U，再随后全部是V，
-        // 再由此数组生成Yuv420的Mat，
-        // 之后可以利用opencv将其转为其他格式
         Image.Plane[] plans = image.getPlanes();
         ByteBuffer y = plans[0].getBuffer();
         ByteBuffer u = plans[1].getBuffer();
@@ -90,5 +89,31 @@ public class Yuv420 {
         Imgproc.cvtColor(yuvMat, grayMat, Imgproc.COLOR_YUV2GRAY_I420);
         yuvMat.release();
         return grayMat;
+    }
+
+    public static Bitmap matToBitmap(Mat mat) {
+            Bitmap bm = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(mat,bm);
+            return bm;
+    }
+
+    public static File saveBitmapAsPng(Context context, Bitmap bitmap, String fileName) {
+            // Use the app's internal storage
+            File file = new File(context.getFilesDir(), fileName + ".png");
+            FileOutputStream out = null;
+            try {
+                out = new FileOutputStream(file);
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // PNG is a lossless format, the compression factor (100) is ignored
+                return file;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            } finally {
+                try {
+                    if (out != null) out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
     }
 }

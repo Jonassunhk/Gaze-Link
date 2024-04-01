@@ -19,6 +19,8 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.google.firebase.firestore.auth.User;
+
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
@@ -39,25 +41,9 @@ public class dev_mode_display extends Fragment {
         // Required empty public constructor
     }
 
-    public interface devModeListener {
-        void onSeekBarValueChanged(String valueName, int value);
-    }
-    private devModeListener callback;
-
-    public static dev_mode_display newInstance(HashMap<String, String> hashMap) {
+    public static dev_mode_display newInstance() {
         dev_mode_display fragment = new dev_mode_display();
         Bundle args = new Bundle();
-
-        String[] displayedSettings = {"Threshold", "TextEntryMode", "Sensitivity"};
-        if (hashMap != null) {
-            for (String i: displayedSettings) {
-                if (hashMap.get(i) != null) {
-                    args.putString(i, hashMap.get(i));
-                }
-            }
-        }
-
-        fragment.setArguments(args);
         return fragment;
     }
 
@@ -65,11 +51,6 @@ public class dev_mode_display extends Fragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         // Ensure that the container activity has implemented the callback interface
-        try {
-            callback = (devModeListener) context;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(context + " must implement OnSeekBarChangeListener");
-        }
     }
 
     private Bitmap matToBitmap(Mat mat) {
@@ -92,11 +73,11 @@ public class dev_mode_display extends Fragment {
         handler.removeCallbacks(updateUI);
     }
 
-    public void updateSettings(Bundle args) {
-
-        int sensitivity = Integer.parseInt(Objects.requireNonNull(args.getString("Sensitivity")));
-        int textEntryMode = Integer.parseInt(Objects.requireNonNull(args.getString("TextEntryMode")));
-        int irisLighting = Integer.parseInt(Objects.requireNonNull(args.getString("Threshold")));
+    public void updateSettings() {
+        UserDataManager userDataManager = (UserDataManager) requireActivity().getApplication();
+        int sensitivity = userDataManager.getSensitivity();
+        int textEntryMode = userDataManager.getTextEntryMode();
+        int irisLighting = userDataManager.getLightingThreshold();
 
         Log.d("DevModeDisplay", "Settings updated " + sensitivity + ' ' + textEntryMode);
 
@@ -137,9 +118,7 @@ public class dev_mode_display extends Fragment {
         lightingSeekBar = mActivity.findViewById(R.id.seekBar);
         sensitivitySeekBar = mActivity.findViewById(R.id.seekBar2);
         textEntryModeSeekBar = mActivity.findViewById(R.id.seekBar3);
-        Bundle args = getArguments();
-        assert args != null;
-        updateSettings(args);
+        updateSettings();
 
         SeekBar.OnSeekBarChangeListener listener = new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -166,12 +145,15 @@ public class dev_mode_display extends Fragment {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 int progress = seekBar.getProgress();
+
+                UserDataManager userDataManager = (UserDataManager) requireActivity().getApplication();
+
                 if (seekBar == lightingSeekBar) {
-                    callback.onSeekBarValueChanged("Threshold", progress);
+                    userDataManager.setLightingThreshold(progress);
                 } else if (seekBar == sensitivitySeekBar) {
-                    callback.onSeekBarValueChanged("Sensitivity", progress);
+                    userDataManager.setSensitivity(progress);
                 } else if (seekBar == textEntryModeSeekBar) {
-                    callback.onSeekBarValueChanged("TextEntryMode", progress);
+                    userDataManager.setTextEntryMode(progress);
                 }
             }
         };

@@ -15,37 +15,69 @@ import androidx.datastore.rxjava2.RxDataStore;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 import io.reactivex.Flowable;
 import io.reactivex.Single;
 
 public class UserDataManager extends Application {
     RxDataStore<androidx.datastore.preferences.core.Preferences> dataStore;
-    Map<String, String> defaultSettings = new HashMap<>();
-    public void initialize(Context mContext) { // initialize the shared preferences
-        dataStore = new RxPreferenceDataStoreBuilder(mContext, "settings").build();
-        // set default settings
-        defaultSettings.put("Threshold", "50");
-        defaultSettings.put("TextEntryMode", "2");
-        defaultSettings.put("Sensitivity", "20");
-        defaultSettings.put("Context", "");
+    Context mContext;
+    // Values
+    private String textEntryContext = ""; // the conversation context from text-entry mode
+    private int lightingThreshold = 0; // lighting threshold
+    private int textEntryMode = 2;
+    private int calibrationState = -1; // -1 = idle
+    public final int calibrationTemplateNum = 6;
+    private int sensitivity = 20;
+    private String requestToken = "";
+    private String requestTokenSecret = "";
+    private String accessToken = "";
+    private Bitmap[] leftCalibrationData;
+    private Bitmap[] rightCalibrationData;
+    String[] leftEyeFileNames = {"left_straight", "left_left", "left_right", "left_up", "left_left_up", "left_right_up"};
+    String[] rightEyeFileNames = {"right_straight", "right_left", "right_right", "right_up", "right_left_up", "right_right_up"};
+    private final String[] reference = {"Straight", "Left", "Right", "Up", "Down", "Closed", "Left Up", "Right Up"};
+    @Override
+    public void onCreate() { // initialize the shared preferences
+        super.onCreate();
+        mContext = this;
+        dataStore = new RxPreferenceDataStoreBuilder(this, "settings").build();
     }
 
-    private String getDefaultSettings(String valueName) {
-        return defaultSettings.get(valueName);
+    public void getSettings() {
+
+        if (getString("LightingThreshold") != null) {
+            lightingThreshold = Integer.parseInt(getString("LightingThreshold"));
+        }
+        if (getString("TextEntryMode") != null) {
+            textEntryMode = Integer.parseInt(getString("TextEntryMode"));
+        }
+        if (getString("Sensitivity") != null) {
+            sensitivity = Integer.parseInt(getString("Sensitivity"));
+        }
+        if (getString("AccessToken") != null) {
+            accessToken = getString("AccessToken");
+        }
+        if (getString("RequestToken") != null) {
+            requestToken = getString("RequestToken");
+        }
+        if (getString("RequestTokenSecret") != null) {
+            requestTokenSecret = getString("RequestTokenSecret");
+        }
+        if (getCalibrationFiles(mContext, leftEyeFileNames) != null) {
+            leftCalibrationData = getCalibrationFiles(mContext, leftEyeFileNames);
+        }
+        if (getCalibrationFiles(mContext, rightEyeFileNames) != null) {
+            rightCalibrationData = getCalibrationFiles(mContext, rightEyeFileNames);
+        }
     }
 
     public String getString(String name) { // read
         Preferences.Key<String> preference = PreferencesKeys.stringKey(name);
         Flowable<String> flowable = dataStore.data().map(prefs -> {
-            if (prefs.get(preference) == null) { // no data
-                return getDefaultSettings(name);
-            } else { // data found
+            if (prefs.get(preference) != null) { // data found
                 return prefs.get(preference);
             }
-
+            return null;
         });
         String result = flowable.firstElement().blockingGet();
         Log.d("UserSettings", "Value of " + name + " is " + result);
@@ -79,6 +111,30 @@ public class UserDataManager extends Application {
         }
     }
 
+    public boolean checkCalibrationFiles() { // check validity of calibration files
+        if (leftCalibrationData == null || rightCalibrationData == null) return false;
+        if (leftCalibrationData.length != calibrationTemplateNum || rightCalibrationData.length != calibrationTemplateNum) return false;
+        else {
+            for (int i = 0; i < calibrationTemplateNum; i++) {
+                if (leftCalibrationData[i] == null || rightCalibrationData[i] == null) return false;
+            }
+        }
+        return true;
+    }
+
+    public void storeCalibrationFile(Context context, String fileName, Bitmap bitmap) {
+        File directory = context.getFilesDir();
+        File file = new File(directory, fileName);
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.flush();
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public Bitmap[] getCalibrationFiles(Context context, String[] fileNames) {
 
         BitmapFactory.Options options = new BitmapFactory.Options();
@@ -98,5 +154,91 @@ public class UserDataManager extends Application {
             }
         }
         return bitmaps;
+    }
+
+    public String gazeIndexToString(int index) {
+        return reference[index];
+    }
+
+    // Getter and Setter
+
+    public int getCalibrationState() {
+        return calibrationState;
+    }
+
+    public void setCalibrationState(int calibrationState) {
+        this.calibrationState = calibrationState;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+        setString("AccessToken", accessToken);
+    }
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setRequestToken(String requestToken) {
+        this.requestToken = requestToken;
+        setString("RequestToken", requestToken);
+    }
+    public String getRequestToken() {
+        return requestToken;
+    }
+
+    public void setRequestTokenSecret(String requestTokenSecret) {
+        this.requestTokenSecret = requestTokenSecret;
+        setString("RequestTokenSecret", requestTokenSecret);
+    }
+    public String getRequestTokenSecret() {
+        return requestTokenSecret;
+    }
+
+    public String getTextEntryContext() {
+        return textEntryContext;
+    }
+    public void setTextEntryContext(String textEntryContext) {
+        this.textEntryContext = textEntryContext;
+    }
+
+    public int getLightingThreshold() {
+        return lightingThreshold;
+    }
+    public void setLightingThreshold(int lightingThreshold) {
+        this.lightingThreshold = lightingThreshold;
+        setString("LightingThreshold", Integer.toString(lightingThreshold));
+    }
+
+    public int getTextEntryMode() {
+        return textEntryMode;
+    }
+    public void setTextEntryMode(int textEntryMode) {
+        this.textEntryMode = textEntryMode;
+        setString("TextEntryMode", Integer.toString(textEntryMode));
+    }
+
+    public int getSensitivity() {
+        return sensitivity;
+    }
+    public void setSensitivity(int sensitivity) {
+        this.sensitivity = sensitivity;
+        setString("Sensitivity", Integer.toString(sensitivity));
+    }
+
+    public Bitmap[] getLeftCalibrationData() {
+        return leftCalibrationData;
+    }
+    public void setLeftCalibrationData(Bitmap leftCalibrationData, int index) {
+        this.leftCalibrationData[index] = leftCalibrationData;
+        storeCalibrationFile(mContext, leftEyeFileNames[index], leftCalibrationData);
+    }
+
+    public Bitmap[] getRightCalibrationData() {
+        return rightCalibrationData;
+    }
+
+    public void setRightCalibrationData(Bitmap rightCalibrationData, int index) {
+        this.rightCalibrationData[index] = rightCalibrationData;
+        storeCalibrationFile(mContext, rightEyeFileNames[index], rightCalibrationData);
     }
 }
