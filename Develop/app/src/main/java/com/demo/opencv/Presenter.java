@@ -5,10 +5,20 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.ToneGenerator;
 import android.util.Log;
+
+import com.demo.opencv.other.AudioManager;
+import com.demo.opencv.other.ClinicalData;
+import com.demo.opencv.other.OpenAIManager;
+import com.demo.opencv.socialMedia.SocialMediaData;
+import com.demo.opencv.socialMedia.SocialMediaManager;
+import com.demo.opencv.textEntry.KeyboardData;
+import com.demo.opencv.textEntry.KeyboardManager;
+import com.demo.opencv.textEntry.QuickChatManager;
+import com.demo.opencv.textEntry.TextEntryManager;
+import com.demo.opencv.vision.DetectionOutput;
+
 import org.opencv.android.Utils;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -25,8 +35,8 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
     private final KeyboardManager keyboardManager = new KeyboardManager();
     private final TextEntryManager textEntryManager = new TextEntryManager();
     private final SocialMediaManager socialMediaManager = new SocialMediaManager();
+    private final QuickChatManager quickChatManager = new QuickChatManager();
     AppLiveData appliveData = new AppLiveData();
-    OpenAIManager OpenAIManager = new OpenAIManager();
     AudioManager audioManager = new AudioManager();
     public ClinicalData clinicalData = new ClinicalData();
     ToneGenerator toneGenerator;
@@ -49,13 +59,15 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
         Log.d("MVPPresenter", "Model Initialized");
         this.mContext = mContext;
         userDataManager = (UserDataManager) applicationContext;
+        //userDataManager.setTextEntryContext("¿Qué te gustaría comer?");
 
         model.initialize(mContext, applicationContext); // MVP model initialization
 
         keyboardManager.initialize(); // keyboard initialization
-        textEntryManager.initialize(mContext); // text prediction initialization
+
+        textEntryManager.initialize(mContext, userDataManager.getLanguage()); // text prediction initialization with language setting
         socialMediaManager.initialize(mContext, applicationContext); // social media initialization
-        //socialMediaManager.postTweet(); // testing
+        quickChatManager.initialize(mContext);
 
         if (userDataManager.getTextEntryContext() != null) {
             textEntryManager.updateContext(userDataManager.getTextEntryContext());
@@ -68,9 +80,6 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
 
         toneGenerator = new ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 100);
 
-        // openAI
-        OpenAIManager.initialize(mContext);
-
         // audio + speech recognition
         audioManager.initialize(mContext);
         audioManager.setAudioManagerListener(this);
@@ -80,7 +89,7 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
 
     @Override
     public void updateCalibration() {
-        String[] calibrationMessages = {"Look straight", "Look right and down", "Look left and down", "Look up", "Look left and up", "Look right and up"};
+        String[] calibrationMessages = {"Look straight", "Look left and down", "Look right and down", "Look up", "Look left and up", "Look right and up"};
 
         int calibrationState = userDataManager.getCalibrationState();
 
@@ -147,10 +156,14 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
 
     @Override
     public void onGazeButtonClicked(int input) { // when the user clicks a gaze button (for both social media and text mode)
+        toneGenerator.startTone(ToneGenerator.TONE_CDMA_PIP, 150);
         if (Objects.equals(mode, "Text")) {
             textEntryManager.manageUserInput(input, false);
         } else if (Objects.equals(mode, "Social Media")) {
             socialMediaManager.manageUserInput(input, false);
+        } else if (Objects.equals(mode, "QuickChat")) {
+            Log.d("QuickChatFragment", "Button Pressed: " + input);
+            quickChatManager.manageUserInput(input, false);
         }
     }
 
@@ -211,11 +224,10 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
                         }
                     } else if (Objects.equals(mode, "Social Media")) { // social media mode
                         socialMediaManager.manageUserInput(gazeType, true);
+                    } else if (Objects.equals(mode, "QuickChat")) { // social media mode
+                        quickChatManager.manageUserInput(gazeType, true);
                     }
                 }
-            } else if (userDataManager.getCalibrationState() != -1 && Objects.equals(mode, "Calibration")) { // when the user is calibrating
-                //clinicalData.leftNICX.add((float)detectionOutput.leftNIC.x);
-                //clinicalData.leftNICY.add((float)detectionOutput.leftNIC.y);
             }
         }
         if (textEntryManager.openSocialMedia) { // action to open social media interface
@@ -233,10 +245,15 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
         KeyboardData keyboardData = textEntryManager.getDisplays();
         appliveData.setKeyboardDisplays(keyboardData); // update text entry information
 
+        // social media manager
         socialMediaManager.updateCameraFrame(rgbMat); // update camera
         socialMediaManager.updateDisplays();
         SocialMediaData socialMediaData = socialMediaManager.getDisplays();
         appliveData.setSocialMediaData(socialMediaData); // update social media information
+
+        // quick chat manager
+        quickChatManager.updateDisplays();
+        appliveData.setQuickChatData(quickChatManager.quickChatData);
 
         appliveData.isRecording = recording;
         appliveData.setDetectionOutput(detectionOutput);

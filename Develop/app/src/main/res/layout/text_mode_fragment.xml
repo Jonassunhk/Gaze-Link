@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:backgroundTint="@color/columbia_blue"
     android:orientation="horizontal"
-    tools:context=".text_mode_display">
+    tools:context=".fragments.text_mode_display">
 
     <!-- TODO: Update blank fragment layout -->
 

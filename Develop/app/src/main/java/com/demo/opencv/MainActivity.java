@@ -2,6 +2,8 @@ package com.demo.opencv;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CaptureRequest;
 import android.media.Image;
@@ -31,19 +33,34 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.demo.opencv.fragments.calibration_display;
+import com.demo.opencv.fragments.clinician_mode_display;
+import com.demo.opencv.fragments.dev_mode_display;
+import com.demo.opencv.fragments.quick_chat_display;
+import com.demo.opencv.fragments.social_media_display;
+import com.demo.opencv.fragments.text_mode_display;
+import com.demo.opencv.other.ClinicalData;
+import com.demo.opencv.socialMedia.TwitterAuthenticator;
+import com.demo.opencv.vision.ImageFormatUtils;
+import com.demo.opencv.vision.Model;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.json.JSONException;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity
-        implements ContractInterface.View, calibration_display.OnButtonClickListener, text_mode_display.TextModeListener, SocialMediaFragment.SocialMediaModeListener {
+        implements ContractInterface.View, calibration_display.OnButtonClickListener,
+        text_mode_display.TextModeListener, social_media_display.SocialMediaModeListener,
+        quick_chat_display.QuickChatListener
+
+{
 
     // creating object of Presenter interface in Contract
     ContractInterface.Presenter presenter;
@@ -60,12 +77,12 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        UserDataManager userDataManager = (UserDataManager) getApplication();
+        userDataManager.getSettings();
+        setLocale(userDataManager.getLanguage());
         setContentView(R.layout.activity_main);
         // instantiating object of Presenter Interface
         presenter = new Presenter(this, new Model());
-
-        UserDataManager userDataManager = (UserDataManager) getApplication();
-        userDataManager.getSettings();
 
         Log.d("MainActivityGazeLink", "initialized");
         try {
@@ -89,36 +106,70 @@ public class MainActivity extends AppCompatActivity
         twitterAuthenticator.handleCallback(uri, getApplication()); // when redirected back, get access token
 
         // home page set up
-        Button devButton, textButton, calibrateButton, clinicianButton, twitterButton;
+        Button devButton, textButton, calibrateButton, clinicianButton, quickChatButton;
         devButton = findViewById(R.id.devModeButton);
         textButton = findViewById(R.id.textModeButton);
         calibrateButton =  findViewById(R.id.calibrateButton);
         clinicianButton = findViewById(R.id.clinicianModeButton);
+        quickChatButton = findViewById(R.id.quickChatButton);
 
         fragmentManager = getSupportFragmentManager();
 
         openSettings();
         clinicianButton.setOnClickListener(v -> {
             if (!Objects.equals(presenter.getMode(), "Clinician")) {
+                setLocale(userDataManager.getLanguage());
                 openClinician();
             }
         });
         devButton.setOnClickListener(v -> {
                 if (!Objects.equals(presenter.getMode(), "Dev")) {
+                    setLocale(userDataManager.getLanguage());
                     openSettings();
                 }
             }
         );
         textButton.setOnClickListener(v -> {
             if (!Objects.equals(presenter.getMode(), "Text")) {
+                setLocale(userDataManager.getLanguage());
                 openTextEntry();
             }
         });
         calibrateButton.setOnClickListener(v -> {
             if (!Objects.equals(presenter.getMode(), "Calibration")) {
+                setLocale(userDataManager.getLanguage());
                 openCalibration();
             }
         });
+        quickChatButton.setOnClickListener(v -> {
+            if (!Objects.equals(presenter.getMode(), "QuickChat")) {
+                setLocale(userDataManager.getLanguage());
+                openQuickChat();
+            }
+        });
+    }
+
+    private void setLocale(String language) {
+
+        String languageCode;
+        if (Objects.equals(language, "English")) {
+            languageCode = "en-us";
+        } else if (Objects.equals(language, "Spanish")) {
+            languageCode = "es";
+        } else if (Objects.equals(language, "Chinese")) {
+            languageCode = "zh";
+        } else {
+            languageCode = "en-us";
+        }
+        Log.d("LocaleSettings", "Current Code: " + languageCode);
+        Locale locale = new Locale(languageCode);
+        Locale.setDefault(locale);
+        Resources resources = getResources();
+        Configuration configuration = resources.getConfiguration();
+
+        configuration.setLocale(locale);
+
+        resources.updateConfiguration(configuration, resources.getDisplayMetrics());
     }
 
     @Override
@@ -136,7 +187,7 @@ public class MainActivity extends AppCompatActivity
     public void openSocialMedia() {
         presenter.setMode("Social Media");
         fragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainerView, SocialMediaFragment.class, null)
+                .replace(R.id.fragmentContainerView, social_media_display.class, null)
                 .setReorderingAllowed(true)
                 .addToBackStack("SocialMediaFragment") // Name can be null
                 .commit();
@@ -170,6 +221,16 @@ public class MainActivity extends AppCompatActivity
                 .addToBackStack("dev_fragment") // Name can be null
                 .commit();
     }
+
+    @Override
+    public void openQuickChat() {
+        presenter.setMode("QuickChat");
+        fragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainerView, quick_chat_display.class, null)
+                .setReorderingAllowed(true)
+                .addToBackStack("quick_chat_fragment") // Name can be null
+                .commit();
+    }
     @Override
     public void openClinician() {
         presenter.setMode("Clinician");
@@ -181,6 +242,8 @@ public class MainActivity extends AppCompatActivity
                 .addToBackStack("clinician_fragment") // Name can be null
                 .commit();
     }
+
+
 
     @Override
     protected void onDestroy() {
@@ -289,5 +352,15 @@ public class MainActivity extends AppCompatActivity
     public void AuthenticationButtonClicked() { // update twitter authentication
         twitterAuthenticator = new TwitterAuthenticator(this);
         twitterAuthenticator.startAuthentication(getApplication());
+    }
+
+    @Override
+    public void onQuickChatButtonClicked(int input) {
+        presenter.onGazeButtonClicked(input);
+    }
+
+    @Override
+    public void onQuickChatButtonContentChanged(String newText) {
+
     }
 }

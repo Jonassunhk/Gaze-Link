@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/purple_500"
-    tools:context=".SocialMediaFragment">
+    tools:context=".fragments.social_media_display">
 
     <ImageView
         android:id="@+id/imageView11"
@@ -24,7 +24,7 @@
         app:layout_constraintVertical_bias="0.035" />
 
     <ImageView
-        android:id="@+id/imageView10"
+        android:id="@+id/TextEntryLeftUpImage"
         android:layout_width="50dp"
         android:layout_height="40dp"
         android:layout_weight="5"
@@ -45,7 +45,7 @@
         android:layout_height="0dp"
         android:fontFamily="sans-serif-medium"
         android:paddingTop="5dp"
-        android:text="TWEET POST"
+        android:text="@string/SocialMedia_Title"
         android:textAlignment="center"
         android:textAllCaps="true"
         android:textColor="@color/ic_launcher_background"
@@ -111,7 +111,7 @@
         android:background="@drawable/text_rounded_green"
         android:fontFamily="sans-serif-medium"
         android:padding="7sp"
-        android:text="User: Xiangzhou Sun"
+        android:text=""
         android:textAlignment="center"
         android:textAllCaps="false"
         android:textColor="@color/ic_launcher_background"
@@ -151,6 +151,7 @@
         android:padding="2sp"
         android:src="@drawable/closedgaze"
         android:translationZ="5dp"
+        android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.7"
@@ -196,7 +197,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.931"
-        app:layout_constraintWidth_percent="0.21" />
+        app:layout_constraintWidth_percent="0.33" />
 
     <TextView
         android:id="@+id/socialMediaGenerateImageButton"
@@ -212,10 +213,11 @@
         android:textColor="@color/black"
         android:textSize="20sp"
         android:textStyle="bold"
+        android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="0.12"
 
+        app:layout_constraintHeight_percent="0.12"
         app:layout_constraintHorizontal_bias="0.337"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -230,6 +232,7 @@
         android:contentDescription="@string/app_name"
         android:padding="2sp"
         android:src="@drawable/rightgaze"
+        android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.452"
@@ -245,7 +248,7 @@
         android:fontFamily="sans-serif-medium"
         android:paddingStart="15dp"
         android:paddingTop="5dp"
-        android:text="DELETE"
+        android:text="@string/SocialMedia_DeleteText"
         android:textAlignment="textStart"
         android:textAllCaps="true"
         android:textColor="@color/black"
@@ -259,7 +262,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.931"
-        app:layout_constraintWidth_percent="0.21" />
+        app:layout_constraintWidth_percent="0.33" />
 
     <TextView
         android:id="@+id/socialMediaRefineTextButton"
@@ -275,10 +278,11 @@
         android:textColor="@color/black"
         android:textSize="20sp"
         android:textStyle="bold"
+        android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="0.12"
 
+        app:layout_constraintHeight_percent="0.12"
         app:layout_constraintHorizontal_bias="0.666"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -306,7 +310,7 @@
         android:fontFamily="sans-serif-medium"
         android:paddingStart="15dp"
         android:paddingTop="5dp"
-        android:text="UPLOAD"
+        android:text="@string/SocialMedia_UploadButton"
         android:textAlignment="textStart"
         android:textAllCaps="true"
         android:textColor="@color/black"
@@ -330,7 +334,7 @@
         android:fontFamily="sans-serif-medium"
         android:paddingTop="5dp"
         android:paddingEnd="15dp"
-        android:text="BACK"
+        android:text="@string/SocialMedia_BackButton"
         android:textAlignment="textEnd"
         android:textAllCaps="true"
         android:textColor="@color/black"

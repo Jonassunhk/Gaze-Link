@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <item
+        android:id="@android:id/background"
+        android:drawable="@drawable/text_rounded_light_green"
+        />
+    <item android:id="@android:id/progress">
+        <clip android:drawable="@drawable/text_rounded_green" />
+    </item>
+</layer-list>

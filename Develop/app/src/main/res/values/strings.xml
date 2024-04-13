@@ -1,17 +1,117 @@
 <resources>
-    <string name="app_name">Gaze Link</string>
-    <string name="take_photo">Take Photo</string>
-    <string name="calibration_button">Calibrate</string>
-    <string name="developer_mode_button">Developer Mode</string>
-    <string name="home_screen_heading">Quick Mode</string>
-    <string name="calibration_screen_heading">Calibration</string>
-    <string name="developer_screen_heading">Developer Mode</string>
-    <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
-    <string name="second_fragment_label">Second Fragment</string>
-    <string name="next">Next</string>
-    <string name="previous">Previous</string>
-    <string name="gaze_input_log_title">GAZE INPUT LOG</string>
+    <!-- Untranslatable Strings -->
+    <string name="app_name" translatable="false">Gaze Link</string>
+
+    <!-- Gaze Types -->
+    <string name="Straight">Straight</string>
+    <string name="Left">Left</string>
+    <string name="Right">Right</string>
+    <string name="Up">Up</string>
+    <string name="LeftUp">Left Up</string>
+    <string name="RightUp">Right Up</string>
+    <string name="Closed">Closed</string>
+
+    <!-- Text Entry Modes -->
+    <string name="TextEntryMode1">Letter by letter</string>
+    <string name="TextEntryMode2">Ambiguous keyboard only</string>
+    <string name="TextEntryMode3">Ambiguous keyboard + LLM</string>
+
+    <!-- Settings UI Strings -->
+    <string name="Settings_TopBarTitle">SETTINGS</string>
+    <string name="Settings_Title">SETTINGS</string>
+    <string name="Settings_GazeType">Gaze Type</string>
+    <string name="Settings_IrisLightingThreshold">Lighting Threshold</string>
+    <string name="Settings_GazeSensitivity">Sensitivity</string>
+    <string name="Settings_TextEntryMode">Text entry mode</string>
+    <string name="Settings_Language">Language</string>
+
+    <!-- Calibration UI Strings -->
+    <string name="Calibration_TopBarTitle">CALIBRATION</string>
+    <string name="Calibration_Title">EYE CALIBRATION</string>
+    <string name="Calibration_Description">Calibrate your eyes for Gaze Link to recognize your eye gestures. Make sure your eyes are on the same level as the front-end camera (see picture below). Press continue to start.</string>
+    <string name="Calibration_Continue">CONTINUE</string>
+    <string name="Calibration_LookStraight">Look straight</string>
+    <string name="Calibration_LookLeft">Look left</string>
+    <string name="Calibration_LookRight">Look right</string>
+    <string name="Calibration_LookUp">Look up</string>
+    <string name="Calibration_LookLeftUp">Look left and up</string>
+    <string name="Calibration_LookRightUp">Look Right and up</string>
+    <string name="Calibration_SwitchEyes">Switch Eyes</string>
+    <string name="Calibration_Finished">Calibration Finished!</string>
+
+    <!-- Text Entry UI Strings -->
+    <string name="TextEntry_TopBarTitle">TEXT ENTRY</string>
+    <string name="TextEntry_Switch">SWITCH</string>
+    <string name="TextEntry_Delete">DELETE</string>
+    <string name="TextEntry_Text">Text:</string>
+    <string name="TextEntry_NoMatch">NO MATCH</string>
+    <string name="TextEntry_NextPage">NEXT PAGE</string>
+    <string name="TextEntry_EnterContext">Add Context: </string>
+    <string name="TextEntry_Finished">FINISH</string>
+    <string name="TextEntry_EnableLLM">Enable LLM to generate</string>
+    <string name="TextEntry_Generating">Generating</string>
+    <string name="TextEntry_Back">BACK</string>
+    <string name="textEntry_Upload">UPLOAD</string>
+    <string name="TextEntry_Speak">SPEAK</string>
+
+    <!-- Social Media Strings -->
+    <string name="SocialMedia_Title">TWEET POST</string>
+    <string name="SocialMedia_BackButton">BACK</string>
+    <string name="SocialMedia_UploadButton">UPLOAD</string>
+    <string name="SocialMedia_LoggedIn">Authenticated</string>
+    <string name="SocialMedia_ClickAuthenticate">Click to authenticate</string>
+    <string name="SocialMedia_TakePhoto">TAKE PHOTO</string>
+    <string name="SocialMedia_DeleteText">DELETE TEXT</string>
+    <string name="SocialMedia_CancelPhoto">CANCEL PHOTO</string>
+    <string name="SocialMedia_TakingPhoto">TAKING PHOTO</string>
+
+    <!-- Quick Chat Strings -->
+
+    <string name="QuickChat_TopBarTitle">QUICK</string>
+    <string name="QuickChat_BackMenuButton">Back to home page</string>
+    <string name="QuickChat_BackButton">Back</string>
+    <string name="QuickChat_Category1">Basic Needs</string>
+    <string name="QuickChat_Category2">Emotions</string>
+    <string name="QuickChat_Category3">Environment Control</string>
+    <string name="QuickChat_Category4">Social Activities and Recreation</string>
+    <string name="QuickChat_Category5">Medical Needs</string>
+
+    <string name="QuickChat_Category1_1">I want to eat something.</string>
+    <string name="QuickChat_Category1_2">I want to sleep.</string>
+    <string name="QuickChat_Category1_3">I want to go to the bathroom.</string>
+    <string name="QuickChat_Category1_4">I want to drink water.</string>
+    <string name="QuickChat_Category1_5">I want to rest.</string>
+
+    <string name="QuickChat_Category2_1">I am happy.</string>
+    <string name="QuickChat_Category2_2">I am sad.</string>
+    <string name="QuickChat_Category2_3">I am angry.</string>
+    <string name="QuickChat_Category2_4">I am scared.</string>
+    <string name="QuickChat_Category2_5">I am confused.</string>
+
+    <string name="QuickChat_Category3_1">I feel hot.</string>
+    <string name="QuickChat_Category3_2">I feel cold.</string>
+    <string name="QuickChat_Category3_3">It is too noisy.</string>
+    <string name="QuickChat_Category3_4">It is too bright.</string>
+    <string name="QuickChat_Category3_5">It is too dark.</string>
+
+    <string name="QuickChat_Category4_1">I want to go outside.</string>
+    <string name="QuickChat_Category4_2">I want to read the newspaper.</string>
+    <string name="QuickChat_Category4_3">I want to listen to music.</string>
+    <string name="QuickChat_Category4_4">I want to watch television.</string>
+    <string name="QuickChat_Category4_5">I want to listen to the radio.</string>
+
+    <string name="QuickChat_Category5_1">I feel some pain.</string>
+    <string name="QuickChat_Category5_2">I feel extreme pain.</string>
+    <string name="QuickChat_Category5_3">I need to eat my pills.</string>
+    <string name="QuickChat_Category5_4">I need to go to the hospital.</string>
+    <string name="QuickChat_Category5_5">I feel fine.</string>
+
+    <!-- Clinician UI Strings -->
+    <string name="Clinician_TopBarTitle">DATA</string>
+    <string name="Clinician_GazeInputLog">Gaze Input Log</string>
+    <string name="Settings_Error">Gaze Error</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="SocialMedia_RetakePhoto">RETAKE PHOTO</string>
+
 </resources>

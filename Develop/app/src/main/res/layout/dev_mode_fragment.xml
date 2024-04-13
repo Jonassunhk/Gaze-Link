@@ -1,172 +1,213 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/devModeFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/beige"
+    android:background="@color/ic_launcher_background"
     android:orientation="horizontal"
-    tools:context=".dev_mode_display">
+    tools:context=".fragments.dev_mode_display">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_weight="0.7"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="13dp">
 
         <TextView
             android:id="@+id/gazeDetectionStastics"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="45dp"
             android:layout_weight="1"
             android:padding="4sp"
-            android:text="SETTINGS"
+            android:text="@string/Settings_Title"
             android:textAlignment="center"
-            android:textColor="@color/purple_500"
-            android:textSize="20sp"
+            android:textColor="@color/metal_green"
+            android:textSize="25sp"
             android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/imageView1"
+                android:layout_width="800dp"
+                android:layout_height="150dp"
+                android:layout_weight="1"
+                android:adjustViewBounds="false"
+
+                android:scaleType="fitCenter"
+
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:srcCompat="@tools:sample/avatars" />
+
+            <TextView
+                android:id="@+id/gazeInputLog2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/text_rounded_dark"
+                android:padding="9sp"
+                android:textAlignment="viewStart"
+                android:textColor="@color/beige"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                tools:layout_editor_absoluteX="343dp"
+                tools:layout_editor_absoluteY="84dp"
+                tools:text="NO INPUT" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/textView1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="-------------"
             android:textAlignment="textStart"
             android:textColor="#4A4A4A"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            tools:text="-------------" />
 
         <TextView
             android:id="@+id/textView2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="-------------"
             android:textAlignment="textStart"
             android:textColor="#4A4A4A"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            tools:text="-------------" />
 
         <TextView
             android:id="@+id/textView3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="-------------"
             android:textAlignment="textStart"
             android:textColor="#4A4A4A"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            tools:text="-------------" />
 
         <TextView
             android:id="@+id/textView4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="-------------"
             android:textAlignment="textStart"
             android:textColor="#4A4A4A"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/textView5"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Iris lighting"
-            android:textAlignment="textStart"
-            android:textColor="@color/purple_500"
             android:textSize="16sp"
-            android:textStyle="bold"
-            android:translationX="30dp"
-            android:translationY="10dp" />
+            tools:text="-------------" />
 
-        <SeekBar
-            android:id="@+id/seekBar"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:padding="5dp">
+
+            <TextView
+                android:id="@+id/sensitivityTitle"
+                android:layout_width="30dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.3"
+                android:text="@string/Settings_GazeSensitivity"
+                android:textAlignment="textEnd"
+                android:textColor="@color/metal_green"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/textView5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.2"
+                android:paddingStart="8dp"
+                android:textAlignment="textStart"
+                android:textColor="@color/metal_green"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                tools:text="15" />
+
+            <SeekBar
+                android:id="@+id/seekBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="255"
+                android:minHeight="30dp"
+                android:progress="15"
+                android:progressDrawable="@drawable/seekbar_progress"
+                android:splitTrack="false"
+                android:thumb="@drawable/seekbar_thumb" />
+
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:max="255"
-            android:paddingTop="15sp" />
+            android:orientation="horizontal"
+            android:padding="5dp">
 
-        <TextView
-            android:id="@+id/textView6"
+            <TextView
+                android:id="@+id/textView6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.3"
+                android:paddingTop="10dp"
+                android:text="Language"
+                android:textAlignment="center"
+                android:textColor="@color/metal_green"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/languageSpinner"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="0.5"
+                android:background="@drawable/text_rounded_light_green"
+                android:entries="@array/language_options"
+                android:minWidth="50dp"
+                android:popupBackground="@drawable/gaze_option_bg_1" />
+
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Gaze Sensitivity"
-            android:textAlignment="textStart"
-            android:textColor="@color/purple_500"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:translationX="30dp"
-            android:translationY="10dp" />
+            android:orientation="horizontal"
+            android:padding="5dp">
 
-        <SeekBar
-            android:id="@+id/seekBar2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:max="100"
-            android:paddingTop="15sp" />
+            <TextView
+                android:id="@+id/textView7"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.3"
+                android:paddingTop="10dp"
+                android:text="Text Entry Mode"
+                android:textAlignment="center"
+                android:textColor="@color/metal_green"
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/textView7"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Text Entry Mode"
-            android:textAlignment="textStart"
-            android:textColor="@color/purple_500"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:translationX="30dp"
-            android:translationY="10dp" />
+            <Spinner
+                android:id="@+id/textEntrySpinner"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="0.5"
+                android:background="@drawable/text_rounded_light_green"
+                android:entries="@array/textEntry_options"
+                android:minWidth="50dp"
+                android:popupBackground="@drawable/gaze_option_bg_1" />
 
-        <SeekBar
-            android:id="@+id/seekBar3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:max="2"
-            android:paddingTop="15sp" />
+        </LinearLayout>
 
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/imageView1"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:adjustViewBounds="false"
-
-            android:background="#D8E7EA"
-            android:scaleType="fitCenter"
-
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:srcCompat="@tools:sample/avatars" />
-
-        <TextView
-            android:id="@+id/gazeInputLog2"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="@color/purple_500"
-            android:padding="5sp"
-            android:textAlignment="viewStart"
-            android:textColor="@color/beige"
-            android:textSize="15sp"
-            tools:text="NO INPUT" />
-
-    </LinearLayout>
-
-</LinearLayout>
+</ScrollView>

@@ -1,12 +1,13 @@
 package com.demo.opencv;
 import android.content.Context;
-import android.graphics.Bitmap;
+
+import com.demo.opencv.other.ClinicalData;
+import com.demo.opencv.vision.DetectionOutput;
 
 import org.json.JSONException;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 public interface ContractInterface {
     interface View {
@@ -16,6 +17,7 @@ public interface ContractInterface {
         void openSettings();
         void openClinician();
         void openCalibration();
+        void openQuickChat();
     }
 
     interface Model {

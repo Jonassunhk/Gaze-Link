@@ -37,7 +37,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:lineSpacingExtra="5sp"
-                        android:text="@string/gaze_input_log_title"
+                        android:text="@string/Clinician_GazeInputLog"
                         android:textColor="@color/white"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -51,7 +51,7 @@
                         android:textColor="@color/beige"
                         android:textSize="16sp"
                         android:translationY="5dp"
-                        tools:text="TextView\nhello\nTextView\nhello\nTextView\nhello\nTextView\nhello\nTextView\nhello\nTextView\nhello\nTextView\nhello\nTextView\nhello\n" />
+                        tools:text="" />
 
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
