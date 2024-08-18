@@ -10,4 +10,8 @@
         <item>Ambiguous Keyboard Only</item>
         <item>Ambiguous Keyboard + LLM</item>
     </string-array>
+    <string-array name="sentenceGenerationModel_options">
+        <item>GPT-3.5 (OpenAI)</item>
+        <item>Gemini 1.5</item>
+    </string-array>
 </resources>

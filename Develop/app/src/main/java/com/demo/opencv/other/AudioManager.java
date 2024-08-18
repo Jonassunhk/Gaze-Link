@@ -61,7 +61,6 @@ public class AudioManager extends Activity {
             mediaPlayer.setDataSource(path);
             mediaPlayer.prepare();
             mediaPlayer.start();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -142,6 +141,9 @@ public class AudioManager extends Activity {
                     finalText = matches.get(0).toLowerCase();
                     audioManagerListener.onAudioUpdated("Context", finalText);
                     Log.d("AudioManager", "Text recognized: " + finalText);
+                } else {
+//                    audioManagerListener.onAudioUpdated("Context", "");
+                    Log.d("AudioManager", "No recognized text");
                 }
             }
 

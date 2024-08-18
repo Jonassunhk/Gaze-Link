@@ -28,6 +28,9 @@ android {
         versionCode 2
         versionName "2.0"
 
+        buildConfigField "String", "MY_GEMINI_KEY", "${MY_GEMINI_KEY}"
+        buildConfigField "String", "MY_OPENAI_KEY", "${MY_OPENAI_KEY}"
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
@@ -68,6 +71,11 @@ android {
 }
 
 dependencies {
+
+    implementation("com.google.ai.client.generativeai:generativeai:0.6.0") // add the dependency for the Google AI client SDK for Android
+    implementation("com.google.guava:guava:31.0.1-android") // Required for one-shot operations (to use `ListenableFuture` from Guava Android)
+    implementation("org.reactivestreams:reactive-streams:1.0.4") // Required for streaming operations (to use `Publisher` from Reactive Streams)
+
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'

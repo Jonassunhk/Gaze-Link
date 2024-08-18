@@ -8,7 +8,6 @@ import android.util.Log;
 
 import com.demo.opencv.other.AudioManager;
 import com.demo.opencv.other.ClinicalData;
-import com.demo.opencv.other.OpenAIManager;
 import com.demo.opencv.socialMedia.SocialMediaData;
 import com.demo.opencv.socialMedia.SocialMediaManager;
 import com.demo.opencv.textEntry.KeyboardData;
@@ -26,6 +25,7 @@ import java.util.Objects;
 
 public class Presenter implements ContractInterface.Presenter, AudioManager.AudioManagerListener {
     Context mContext;
+    Context applicationContext;
     UserDataManager userDataManager;
     public boolean presenterBusy = false;
     public String mode = ""; // Calibration, Text, Dev, Clinician, Social Media
@@ -58,6 +58,7 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
 
         Log.d("MVPPresenter", "Model Initialized");
         this.mContext = mContext;
+        this.applicationContext = applicationContext;
         userDataManager = (UserDataManager) applicationContext;
         //userDataManager.setTextEntryContext("¿Qué te gustaría comer?");
 
@@ -65,22 +66,16 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
 
         keyboardManager.initialize(); // keyboard initialization
 
-        textEntryManager.initialize(mContext, userDataManager.getLanguage()); // text prediction initialization with language setting
+        textEntryManager.initialize(mContext); // text prediction initialization with language setting
+        textEntryManager.updateSettings(applicationContext); // update settings for text entry
         socialMediaManager.initialize(mContext, applicationContext); // social media initialization
         quickChatManager.initialize(mContext);
 
-        if (userDataManager.getTextEntryContext() != null) {
-            textEntryManager.updateContext(userDataManager.getTextEntryContext());
-        }
-        textEntryManager.LLMEnabled = (userDataManager.getTextEntryMode() == 2);
-
         clinicalData = new ClinicalData();
-
         appliveData.calibrationInstruction = "Eye Calibration";
 
-        toneGenerator = new ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 100);
-
         // audio + speech recognition
+        toneGenerator = new ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 100);
         audioManager.initialize(mContext);
         audioManager.setAudioManagerListener(this);
 
@@ -139,7 +134,8 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
     @Override
     public void setMode(String value) {
         mode = value;
-        if (Objects.equals(mode, "Text")) {
+        if (Objects.equals(mode, "Text")) { // when the mode is text entry
+            textEntryManager.updateSettings(applicationContext); // always update settings when opened
             if (userDataManager.getTextEntryMode() == 0) {
                 KeyboardData keyboardData = keyboardManager.getDisplays();
                 appliveData.setKeyboardDisplays(keyboardData);
@@ -203,7 +199,7 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
      //   Log.d("MVPPresenter", "Frame processed");
 
         if (detectionOutput.AnalyzedData != null) { // when the input is valid
-            if (Objects.equals(mode, "Text") || Objects.equals(mode, "Dev") || Objects.equals(mode, "Social Media")) { // not calibrating or in clinician mode, process the input
+            if (Objects.equals(mode, "Text") || Objects.equals(mode, "Dev") || Objects.equals(mode, "Social Media") || Objects.equals(mode, "QuickChat")) { // not calibrating or in clinician mode, process the input
                 int gazeType = detectionOutput.gestureOutput;
 
                 if (gazeType != 0) { // gaze input is meaningful
@@ -224,7 +220,7 @@ public class Presenter implements ContractInterface.Presenter, AudioManager.Audi
                         }
                     } else if (Objects.equals(mode, "Social Media")) { // social media mode
                         socialMediaManager.manageUserInput(gazeType, true);
-                    } else if (Objects.equals(mode, "QuickChat")) { // social media mode
+                    } else if (Objects.equals(mode, "QuickChat")) { // quick chat mode
                         quickChatManager.manageUserInput(gazeType, true);
                     }
                 }

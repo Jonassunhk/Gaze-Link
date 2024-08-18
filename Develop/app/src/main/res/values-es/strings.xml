@@ -89,4 +89,5 @@
     <string name="SocialMedia_Title">GORJEO</string>
     <string name="SocialMedia_CancelPhoto">CANCELAR FOTO</string>
     <string name="SocialMedia_TakingPhoto">TOMANDO FOTO</string>
+    <string name="Settings_SentenceGenerationModel">Modelo de Generación</string>
 </resources>

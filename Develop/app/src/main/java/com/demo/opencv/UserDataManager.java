@@ -35,12 +35,14 @@ public class UserDataManager extends Application {
     private int textEntryMode = 2;
     private int calibrationState = -1; // -1 = idle
     public final int calibrationTemplateNum = 6;
+    private int sentenceGenerationModel = 0;
     private int sensitivity = 20;
     private String language = "English";
     private String requestToken = "";
     private String requestTokenSecret = "";
     private String accessToken = "";
     private String accessTokenSecret = "";
+
     private Bitmap[] leftCalibrationData;
     private Bitmap[] rightCalibrationData;
     String[] leftEyeFileNames = {"left_straight", "left_left", "left_right", "left_up", "left_left_up", "left_right_up"};
@@ -61,6 +63,7 @@ public class UserDataManager extends Application {
         defaultSettings.put("AccessTokenSecret", "");
         defaultSettings.put("RequestToken", "");
         defaultSettings.put("RequestTokenSecret", "");
+        defaultSettings.put("SentenceGenerationModel", "1");
     }
 
 
@@ -75,6 +78,7 @@ public class UserDataManager extends Application {
         accessTokenSecret = getString("AccessTokenSecret");
         requestToken = getString("RequestToken");
         requestTokenSecret = getString("RequestTokenSecret");
+        sentenceGenerationModel = Integer.parseInt(getString("SentenceGenerationModel"));
 
         // get calibration files
         if (getCalibrationFiles(mContext, leftEyeFileNames) != null) {
@@ -183,7 +187,11 @@ public class UserDataManager extends Application {
     }
 
     // Getter and Setter
-
+    public int getSentenceGenerationModel() {return sentenceGenerationModel; }
+    public void setSentenceGenerationModel(int sentenceGenerationModel) {
+        this.sentenceGenerationModel = sentenceGenerationModel;
+        setString("SentenceGenerationModel", Integer.toString(sentenceGenerationModel));
+    }
     public String getLanguage() {return language; }
     public void setLanguage(String language) {
         this.language = language;

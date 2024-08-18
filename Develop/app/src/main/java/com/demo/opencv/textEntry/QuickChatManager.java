@@ -3,13 +3,11 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import com.demo.opencv.R;
-import com.demo.opencv.other.OpenAIManager;
-
-import java.util.Objects;
+import com.demo.opencv.AI.AIManager;
 
 public class QuickChatManager {
 
-    OpenAIManager openAIManager = new OpenAIManager();
+    AIManager AIManager = new AIManager();
     public QuickChatData quickChatData;
     Context mContext;
     int mode = 0; // 0 = home page, 1-5 = the 5 different categories
@@ -24,7 +22,7 @@ public class QuickChatManager {
     }; // the title of each category
     public void initialize(Context mContext) {
         this.mContext = mContext;
-        openAIManager.initialize(mContext);
+        AIManager.initialize(mContext);
         quickChatData = new QuickChatData();
     }
 
@@ -71,7 +69,7 @@ public class QuickChatManager {
         if (TextUtils.isDigitsOnly(data)) { // an id
             data = mContext.getResources().getString(Integer.parseInt(data));
         }
-        openAIManager.speechGenerationService(data);
+        AIManager.speechGenerationService(data);
     }
 
     String[][] quickChatStrings = { // the content stored in the categories (two-dimensional: 5x5)

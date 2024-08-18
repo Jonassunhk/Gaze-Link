@@ -1,4 +1,4 @@
-package com.demo.opencv.other;
+package com.demo.opencv.AI;
 
 import android.content.Context;
 import android.content.Intent;
@@ -7,6 +7,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.demo.opencv.BuildConfig;
+import com.demo.opencv.other.Mp3Player;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.json.JSONException;
@@ -33,8 +35,8 @@ import retrofit2.http.Body;
 import retrofit2.http.Headers;
 import retrofit2.http.POST;
 
-public class OpenAIManager { // extends appCompatActivity
-    private final static String OPENAI_API_KEY = ""; // do not push to github, openAI key
+public class AIManager { // extends appCompatActivity
+    private final static String OPENAI_API_KEY = BuildConfig.MY_OPENAI_KEY; // do not push to github, openAI key
     HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     OpenAIService textService;
@@ -76,6 +78,24 @@ public class OpenAIManager { // extends appCompatActivity
 
     public void generateText(String tag, String prompt, String language) { // TODO: add tag to keep track of the usage
 
+       // Log.d("SentenceGeneration", String.valueOf(Looper.myLooper()));
+        Log.d("SentenceGeneration", "here");
+
+        // fake output for testing
+//        if (Objects.equals(tag, "SP")) {
+//            new Thread(() -> {
+//                Looper.prepare();
+//
+//                android.os.Handler handler = new android.os.Handler();
+//                handler.postDelayed(() -> {
+//                    Log.d("SentenceGeneration", "Message Sent");
+//                    sendMessage("SP-我想吃牛肉面。");
+//                    Objects.requireNonNull(Looper.myLooper()).quit();
+//                }, 1000); // 延迟2秒执行
+//                Looper.loop(); // 开始循环处理消息
+//            }).start();
+//            return;
+//        }
         // Prepare the request body
         Message messageStructure = new Message("user", prompt);
         Message messageStructure2;
@@ -112,7 +132,7 @@ public class OpenAIManager { // extends appCompatActivity
             @Override
             public void onResponse(@NonNull Call<TextGenerationOutput> call, @NonNull Response<TextGenerationOutput> response) {
                 if (response.isSuccessful()) {
-                    if (response.body() != null && response.body().choices().size() != 0) {
+                    if (response.body() != null && !response.body().choices().isEmpty()) {
                         String output = tag + "-" + response.body().choices().get(0).message.content;
                         sendMessage(output);
                         Log.d("TextGeneration", output);
@@ -120,12 +140,18 @@ public class OpenAIManager { // extends appCompatActivity
                         Log.d("TextGeneration", "Error: No contents");
                     }
                 } else {
-                    Log.d("TextGeneration", "Error: response not successful");
+                    Log.d("TextGeneration", "Error: response not successful " + response.message());
+                    if (Objects.equals(tag, "SP")) {
+                        sendMessage("SP-Error: " + response.message());
+                    }
                 }
             }
             @Override
             public void onFailure(@NonNull Call<TextGenerationOutput> call, @NonNull Throwable t) {
                 Log.d("TextGeneration", "Failure: " + t.getMessage());
+                if (Objects.equals(tag, "SP")) {
+                    sendMessage("SP-Error: " + t.getMessage());
+                }
             }
         });
     }

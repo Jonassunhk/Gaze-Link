@@ -24,6 +24,7 @@
     <string name="Settings_GazeSensitivity">Sensitivity</string>
     <string name="Settings_TextEntryMode">Text entry mode</string>
     <string name="Settings_Language">Language</string>
+    <string name="Settings_SentenceGenerationModel">Sentence Generation Model</string>
 
     <!-- Calibration UI Strings -->
     <string name="Calibration_TopBarTitle">CALIBRATION</string>

@@ -26,7 +26,6 @@ public class Mp3Player {
 
             // Release the MediaPlayer resource once the audio is completed
             mediaPlayer.setOnCompletionListener(MediaPlayer::release);
-
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
                 mp.release();
                 return true;

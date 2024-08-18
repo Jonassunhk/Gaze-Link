@@ -50,34 +50,26 @@ public class GoogleFaceDetector {
             leftEyeContour = null;
             rightEyeContour = null;
         }
-        for (Face face : faces) {
-            Log.d("googleFaceDetector", "face detected");
-            //faceBound = face.getBoundingBox();
-            //rotY = face.getHeadEulerAngleY();  // Head is rotated to the right rotY degrees
-            //rotZ = face.getHeadEulerAngleZ();  // Head is tilted sideways rotZ degrees
+        Face largestFace = null;
+        int maxSize = -1;
+        for (Face face: faces) { // determine the largest face
+            Rect boundingBox = face.getBoundingBox();
+            if (boundingBox.height() * boundingBox.width() > maxSize) {
+                largestFace = face;
+                maxSize = boundingBox.height() * boundingBox.width();
+            }
+        }
 
-            // If contour detection was enabled:
-           // if (leftEyeContour == null || rightEyeContour == null) {
-                leftEyeContour = face.getContour(FaceContour.LEFT_EYE);
-                rightEyeContour = face.getContour(FaceContour.RIGHT_EYE);
-           // }
-
-//            FaceLandmark leftEye = face.getLandmark(FaceLandmark.LEFT_EYE);
-//            if (leftEye != null) {
-//                leftEyePos = leftEye.getPosition();
-//            }
-//
-//            FaceLandmark rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE);
-//            if (rightEye != null) {
-//                rightEyePos = rightEye.getPosition();
-//            }
+        if (largestFace != null) {
+            leftEyeContour = largestFace.getContour(FaceContour.LEFT_EYE);
+            rightEyeContour = largestFace.getContour(FaceContour.RIGHT_EYE);
 
             // If classification was enabled:
-            if (face.getLeftEyeOpenProbability() != null) {
-                leftEyeOpenProb = face.getLeftEyeOpenProbability();
+            if (largestFace.getLeftEyeOpenProbability() != null) {
+                leftEyeOpenProb = largestFace.getLeftEyeOpenProbability();
             }
-            if (face.getRightEyeOpenProbability() != null) {
-                rightEyeOpenProb = face.getRightEyeOpenProbability();
+            if (largestFace.getRightEyeOpenProbability() != null) {
+                rightEyeOpenProb = largestFace.getRightEyeOpenProbability();
             }
         }
     }

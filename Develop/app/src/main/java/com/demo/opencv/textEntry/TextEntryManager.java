@@ -9,8 +9,10 @@ import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.demo.opencv.AI.GeminiManager;
+import com.demo.opencv.UserDataManager;
 import com.demo.opencv.other.AudioManager;
-import com.demo.opencv.other.OpenAIManager;
+import com.demo.opencv.AI.AIManager;
 import com.demo.opencv.R;
 
 import java.io.IOException;
@@ -26,12 +28,14 @@ public class TextEntryManager extends AppCompatActivity {
     int wordsPerPage = 3;
     int NWPWords = 6;
     int currentPage = 1;
+    int sentenceGenerationModel = 0; // 0: openAI 3.5, 1: gemini 1.5
     String language = "English"; // default language
     int mode = 1; // 0: word mode, 1: blurry input
     String context = ""; // the context content for context-based predictions
     KeyboardData keyboardData = new KeyboardData(); // data structure for UI display
     Context mContext;
-    OpenAIManager openAIManager = new OpenAIManager(); // openAI services
+    AIManager AIManager = new AIManager(); // openAI services
+    GeminiManager geminiManager = new GeminiManager(); // gemini services
     AudioManager audioManager = new AudioManager(); // text-to-speech
     BlurryInput blurryInput = new BlurryInput();
     TextInfo current = new TextInfo();
@@ -40,13 +44,26 @@ public class TextEntryManager extends AppCompatActivity {
     String SwitchString = String.valueOf(R.string.TextEntry_Switch);
     String DeleteString = String.valueOf(R.string.TextEntry_Delete);
     String FinishedString = String.valueOf(R.string.TextEntry_Finished);
-    public void initialize(Context mContext, String language) throws IOException {
+    public void initialize(Context mContext) throws IOException {
         this.mContext = mContext;
-        this.language = language;
-        openAIManager.initialize(mContext);
+        AIManager.initialize(mContext);
         audioManager.initialize(mContext);
-        blurryInput.initialize(mContext, language);
+        current.Sentence = "All ALS patients should have a voice in the digital world.";
         LocalBroadcastManager.getInstance(mContext).registerReceiver(mMessageReceiver, new IntentFilter("textGenerationEvent"));
+
+        geminiManager.init(mContext);
+        //geminiManager.generate("yes", "do you like music?");
+    }
+
+    public void updateSettings(Context applicationContext) { // match class settings with the global settings
+        UserDataManager userDataManager = (UserDataManager) applicationContext;
+        this.language = userDataManager.getLanguage();
+        blurryInput.initialize(mContext, language);
+        this.sentenceGenerationModel = userDataManager.getSentenceGenerationModel();
+        this.LLMEnabled = (userDataManager.getTextEntryMode() == 2);
+        if (userDataManager.getTextEntryContext() != null) {
+            updateContext(userDataManager.getTextEntryContext());
+        }
     }
 
     public void manageUserInput(int input, boolean isGazeType) {
@@ -126,7 +143,7 @@ public class TextEntryManager extends AppCompatActivity {
 
     public void updateDisplays() {
 
-        if (wordPredictions.size() > 0) {
+        if (!wordPredictions.isEmpty()) {
             String[] nextPageWords = blurryInput.getWordPage(wordPredictions, currentPage, wordsPerPage);
             wordModeUI = fillWords(nextPageWords, wordIndex, wordModeUI);
             letterModeUI = fillWords(nextPageWords, wordIndex2, letterModeUI);
@@ -162,16 +179,20 @@ public class TextEntryManager extends AppCompatActivity {
     }
 
     private void sentencePrediction() { // predicting the sentences based on keywords
-        if (!LLMEnabled || current.Words.size() == 0) return; // LLM enabled, at least one word
+        if (!LLMEnabled || current.Words.isEmpty()) return; // LLM enabled, at least one word
         String finalString = current.getWords();
+        if (sentenceGenerationModel == 0) { // openAI model
+            AIManager.generateText("SP", "Keywords: " + finalString + ". Context: " + context, language);
+        } else { // gemini model
+            geminiManager.generate(finalString, context, language);
+        }
         current.Sentence = "Generating...";
-        openAIManager.generateText("SP", "Keywords: " + finalString + ". Context: " + context, language);
     }
 
     public void nextWordPrediction(int num) { // predicting the next word based on current keywords
         if (!LLMEnabled || Objects.equals(language, "Chinese")) return;
-        if (current.Words.size() > 0 && Objects.equals(current.BlurryInput, "")) { // no blurry input, at least one word
-            openAIManager.generateText("NWP",
+        if (!current.Words.isEmpty() && Objects.equals(current.BlurryInput, "")) { // no blurry input, at least one word
+            AIManager.generateText("NWP",
                     "Given the word '" + current.Words.get(current.Words.size() - 1) +
                             "Predict " + num + " " + language + "words that will mostly follow that word in a sentence" +
                             "Only output in the format: word, word, word.", language
@@ -179,12 +200,10 @@ public class TextEntryManager extends AppCompatActivity {
         }
     }
 
-
-
     public void contextWordPrediction(int number) {
         if (!LLMEnabled || Objects.equals(language, "Chinese")) return;
         if (!Objects.equals(context, "")) { // if there is context
-            openAIManager.generateText("CWP",
+            AIManager.generateText("CWP",
                     "You are predicting words for a " + language + " motor neuron disease patient. " +
                             "Give me " + number + " specific or proper nouns in " + language + " that might be part of a response to the " + language + " phrase:" + context +
                             "during a conversation. " +
@@ -266,7 +285,7 @@ public class TextEntryManager extends AppCompatActivity {
             text = current.getWords();
         }
         //audioManager.speakText(text); // android built-in speech
-        openAIManager.speechGenerationService(text); // openAI speech
+        AIManager.speechGenerationService(text); // openAI speech
     }
 
     @Override

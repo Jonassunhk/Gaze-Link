@@ -41,7 +41,7 @@ public class dev_mode_display extends Fragment {
     Handler handler;
     Runnable updateUI;
     SeekBar sensitivitySeekBar;
-    Spinner textEntrySpinner, languageSpinner;
+    Spinner textEntrySpinner, languageSpinner, sentenceGenerationModelSpinner;
     UserDataManager userDataManager;
 
     public dev_mode_display() {
@@ -83,12 +83,15 @@ public class dev_mode_display extends Fragment {
     public void updateSettings() {
         int sensitivity = userDataManager.getSensitivity();
         int textEntryMode = userDataManager.getTextEntryMode();
+        int sentenceGenerationModel = userDataManager.getSentenceGenerationModel();
         String language = userDataManager.getLanguage();
+
 
         Log.d("DevModeDisplay", "Settings updated " + sensitivity);
         sensitivitySeekBar.setProgress(sensitivity);
         texts[4].setText(String.valueOf(sensitivity));
         textEntrySpinner.setSelection(textEntryMode);
+        sentenceGenerationModelSpinner.setSelection(sentenceGenerationModel);
 
         if (Objects.equals(language, "English")) {
             languageSpinner.setSelection(0);
@@ -119,6 +122,7 @@ public class dev_mode_display extends Fragment {
         sensitivitySeekBar = mActivity.findViewById(R.id.seekBar);
         textEntrySpinner = mActivity.findViewById(R.id.textEntrySpinner);
         languageSpinner = mActivity.findViewById(R.id.languageSpinner);
+        sentenceGenerationModelSpinner = mActivity.findViewById(R.id.sentenceGenerationModelSpinner);
 
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(mActivity, R.array.language_options, R.layout.custom_spinner_item);
         adapter.setDropDownViewResource(R.layout.custom_spinner_item);
@@ -128,8 +132,11 @@ public class dev_mode_display extends Fragment {
         adapter.setDropDownViewResource(R.layout.custom_spinner_item);
         textEntrySpinner.setAdapter(adapter2);
 
-        updateSettings();
+        ArrayAdapter<CharSequence> adapter3 = ArrayAdapter.createFromResource(mActivity, R.array.sentenceGenerationModel_options, R.layout.custom_spinner_item);
+        adapter.setDropDownViewResource(R.layout.custom_spinner_item);
+        sentenceGenerationModelSpinner.setAdapter(adapter3);
 
+        updateSettings();
         // set seek bars
         SeekBar.OnSeekBarChangeListener listener = new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -152,7 +159,6 @@ public class dev_mode_display extends Fragment {
             }
         };
         sensitivitySeekBar.setOnSeekBarChangeListener(listener);
-
 
         languageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -177,6 +183,18 @@ public class dev_mode_display extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 Log.d("SpinnerTesting", "text entry mode changed to " + position);
                 userDataManager.setTextEntryMode(position);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Another interface callback
+            }
+        });
+
+        sentenceGenerationModelSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Log.d("SpinnerTesting", "sentence generation model changed to " + position);
+                userDataManager.setSentenceGenerationModel(position);
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) {

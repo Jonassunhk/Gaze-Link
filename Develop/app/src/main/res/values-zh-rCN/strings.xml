@@ -89,4 +89,5 @@
     <string name="SocialMedia_Title">社交媒体</string>
     <string name="SocialMedia_CancelPhoto">删除照片</string>
     <string name="SocialMedia_TakingPhoto">拍照中</string>
+    <string name="Settings_SentenceGenerationModel">句子生成模型</string>
 </resources>

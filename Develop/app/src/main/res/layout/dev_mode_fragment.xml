@@ -159,7 +159,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="0.3"
                 android:paddingTop="10dp"
-                android:text="Language"
+                android:text="@string/Settings_Language"
                 android:textAlignment="center"
                 android:textColor="@color/metal_green"
                 android:textSize="20sp"
@@ -189,7 +189,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="0.3"
                 android:paddingTop="10dp"
-                android:text="Text Entry Mode"
+                android:text="@string/Settings_TextEntryMode"
                 android:textAlignment="center"
                 android:textColor="@color/metal_green"
                 android:textSize="20sp"
@@ -202,6 +202,36 @@
                 android:layout_weight="0.5"
                 android:background="@drawable/text_rounded_light_green"
                 android:entries="@array/textEntry_options"
+                android:minWidth="50dp"
+                android:popupBackground="@drawable/gaze_option_bg_1" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:padding="5dp">
+
+            <TextView
+                android:id="@+id/textView8"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.3"
+                android:paddingTop="10dp"
+                android:text="@string/Settings_SentenceGenerationModel"
+                android:textAlignment="center"
+                android:textColor="@color/metal_green"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/sentenceGenerationModelSpinner"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="0.5"
+                android:background="@drawable/text_rounded_light_green"
+                android:entries="@array/sentenceGenerationModel_options"
                 android:minWidth="50dp"
                 android:popupBackground="@drawable/gaze_option_bg_1" />
 
